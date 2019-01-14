@@ -1,0 +1,19 @@
+{
+    "status_code": 200,
+    "data": {
+        "Account": "123456781234",
+        "UserId": "AROAJBCT7V7VFTY5XSTFQ:Deploy",
+        "ResponseMetadata": {
+            "RetryAttempts": 0,
+            "HTTPStatusCode": 200,
+            "RequestId": "5d66e353-17ee-11e9-b015-9b67da138ff2",
+            "HTTPHeaders": {
+                "x-amzn-requestid": "5d66e353-17ee-11e9-b015-9b67da138ff2",
+                "date": "Mon, 14 Jan 2019 11:20:14 GMT",
+                "content-length": "439",
+                "content-type": "text/xml"
+            }
+        },
+        "Arn": "arn:aws:sts::123456781234:assumed-role/MyRole/Deploy"
+    }
+}
