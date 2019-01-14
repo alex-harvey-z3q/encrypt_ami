@@ -35,6 +35,10 @@ def get_args():
     "--name",
         action="store",
         help="The name of the new AMI in the destination region.")
+  parser.add_argument(
+    "--os",
+        action="store", required=False, metavar="OS", dest="os", default="linux", choices=["linux", "windows"],
+        help="The OS of the source image.")
   return parser.parse_args()
 
 def boto3_client_ec2():
@@ -225,9 +229,10 @@ def ec2_run_instances(**kwargs):
 
   subnet_id = random.choice(os.environ.get('AWS_BACKEND_SUBNET_IDS').split(','))
 
-  user_data_script = ""
-  if kwargs['name'].startswith('cloud2-win2k'):
-      user_data_script = user_data_script()
+  if kwargs['os'] == "windows":
+    user_data = str(user_data_script())
+  else:
+    user_data = ""
 
   response = client.run_instances(DryRun=False,
         ImageId=kwargs['source_image_id'],
