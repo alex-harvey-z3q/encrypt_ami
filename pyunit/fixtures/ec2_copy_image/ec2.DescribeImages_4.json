@@ -1,0 +1,33 @@
+{
+    "status_code": 200, 
+    "data": {
+        "Images": [
+            {
+                "VirtualizationType": "paravirtual", 
+                "Hypervisor": "xen", 
+                "ImageId": "ami-2939214a", 
+                "State": "pending", 
+                "BlockDeviceMappings": [], 
+                "Architecture": "i386", 
+                "ImageLocation": "N/A", 
+                "RootDeviceType": "instance-store", 
+                "OwnerId": "111111111111", 
+                "CreationDate": "2017-08-13T06:17:32.000Z", 
+                "Public": false, 
+                "ImageType": "machine"
+            }
+        ], 
+        "ResponseMetadata": {
+            "RetryAttempts": 0, 
+            "HTTPStatusCode": 200, 
+            "RequestId": "66aa4b2a-4c60-4e8c-8a74-02d0b7443cc5", 
+            "HTTPHeaders": {
+                "transfer-encoding": "chunked", 
+                "vary": "Accept-Encoding", 
+                "server": "AmazonEC2", 
+                "content-type": "text/xml;charset=UTF-8", 
+                "date": "Sun, 13 Aug 2017 06:17:32 GMT"
+            }
+        }
+    }
+}

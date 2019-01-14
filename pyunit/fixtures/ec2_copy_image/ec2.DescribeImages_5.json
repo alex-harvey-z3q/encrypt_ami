@@ -1,0 +1,66 @@
+{
+    "status_code": 200, 
+    "data": {
+        "Images": [
+            {
+                "VirtualizationType": "hvm", 
+                "Name": "encrypted-jenkins-201708131611", 
+                "Hypervisor": "xen", 
+                "ImageId": "ami-2939214a", 
+                "State": "available", 
+                "BlockDeviceMappings": [
+                    {
+                        "DeviceName": "/dev/sda1", 
+                        "Ebs": {
+                            "Encrypted": true, 
+                            "DeleteOnTermination": true, 
+                            "VolumeType": "gp2", 
+                            "VolumeSize": 20, 
+                            "SnapshotId": "snap-04a767b26e90632f5"
+                        }
+                    }, 
+                    {
+                        "DeviceName": "/dev/sdc", 
+                        "Ebs": {
+                            "Encrypted": true, 
+                            "DeleteOnTermination": true, 
+                            "VolumeType": "gp2", 
+                            "VolumeSize": 40, 
+                            "SnapshotId": "snap-0b37b69493d0c1e2e"
+                        }
+                    }, 
+                    {
+                        "DeviceName": "/dev/xvdp", 
+                        "Ebs": {
+                            "Encrypted": true, 
+                            "DeleteOnTermination": true, 
+                            "VolumeType": "gp2", 
+                            "VolumeSize": 15, 
+                            "SnapshotId": "snap-05bae46435d6dac27"
+                        }
+                    }
+                ], 
+                "Architecture": "x86_64", 
+                "ImageLocation": "625972064986/encrypted-jenkins-201708131611", 
+                "RootDeviceType": "ebs", 
+                "OwnerId": "111111111111", 
+                "RootDeviceName": "/dev/sda1", 
+                "CreationDate": "2017-08-13T06:17:32.000Z", 
+                "Public": false, 
+                "ImageType": "machine"
+            }
+        ], 
+        "ResponseMetadata": {
+            "RetryAttempts": 0, 
+            "HTTPStatusCode": 200, 
+            "RequestId": "bb49cbf2-c58c-406f-894e-eeea79aaf4c6", 
+            "HTTPHeaders": {
+                "transfer-encoding": "chunked", 
+                "vary": "Accept-Encoding", 
+                "server": "AmazonEC2", 
+                "content-type": "text/xml;charset=UTF-8", 
+                "date": "Sun, 13 Aug 2017 06:22:56 GMT"
+            }
+        }
+    }
+}

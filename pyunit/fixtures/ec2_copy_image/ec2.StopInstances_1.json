@@ -1,0 +1,30 @@
+{
+    "status_code": 200, 
+    "data": {
+        "StoppingInstances": [
+            {
+                "InstanceId": "i-0481ed4a67454b5e7", 
+                "CurrentState": {
+                    "Code": 64, 
+                    "Name": "stopping"
+                }, 
+                "PreviousState": {
+                    "Code": 16, 
+                    "Name": "running"
+                }
+            }
+        ], 
+        "ResponseMetadata": {
+            "RetryAttempts": 0, 
+            "HTTPStatusCode": 200, 
+            "RequestId": "1e33bbc9-4975-486b-b88d-8be7966f1a04", 
+            "HTTPHeaders": {
+                "transfer-encoding": "chunked", 
+                "vary": "Accept-Encoding", 
+                "server": "AmazonEC2", 
+                "content-type": "text/xml;charset=UTF-8", 
+                "date": "Sun, 13 Aug 2017 06:15:37 GMT"
+            }
+        }
+    }
+}

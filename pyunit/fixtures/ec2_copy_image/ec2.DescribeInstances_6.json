@@ -1,0 +1,74 @@
+{
+    "status_code": 200, 
+    "data": {
+        "Reservations": [
+            {
+                "Instances": [
+                    {
+                        "Monitoring": {
+                            "State": "disabled"
+                        }, 
+                        "PublicDnsName": "", 
+                        "RootDeviceType": "ebs", 
+                        "State": {
+                            "Code": 48, 
+                            "Name": "terminated"
+                        }, 
+                        "EbsOptimized": false, 
+                        "LaunchTime": {
+                            "hour": 6, 
+                            "__class__": "datetime", 
+                            "month": 8, 
+                            "second": 47, 
+                            "microsecond": 0, 
+                            "year": 2017, 
+                            "day": 13, 
+                            "minute": 11
+                        }, 
+                        "ProductCodes": [], 
+                        "StateTransitionReason": "User initiated (2017-08-13 06:15:37 GMT)", 
+                        "InstanceId": "i-0481ed4a67454b5e7", 
+                        "ImageId": "ami-52293031", 
+                        "PrivateDnsName": "", 
+                        "SecurityGroups": [], 
+                        "ClientToken": "", 
+                        "InstanceType": "c4.2xlarge", 
+                        "NetworkInterfaces": [], 
+                        "Placement": {
+                            "Tenancy": "default", 
+                            "GroupName": "", 
+                            "AvailabilityZone": "ap-southeast-2b"
+                        }, 
+                        "Hypervisor": "xen", 
+                        "BlockDeviceMappings": [], 
+                        "Architecture": "x86_64", 
+                        "StateReason": {
+                            "Message": "Client.UserInitiatedShutdown: User initiated shutdown", 
+                            "Code": "Client.UserInitiatedShutdown"
+                        }, 
+                        "RootDeviceName": "/dev/sda1", 
+                        "VirtualizationType": "hvm", 
+                        "Tags": [
+                        ], 
+                        "AmiLaunchIndex": 0
+                    }
+                ], 
+                "ReservationId": "r-00e7d5ad2c859576d", 
+                "Groups": [], 
+                "OwnerId": "111111111111"
+            }
+        ], 
+        "ResponseMetadata": {
+            "RetryAttempts": 0, 
+            "HTTPStatusCode": 200, 
+            "RequestId": "0c964773-c0ad-4019-9479-15944075dd27", 
+            "HTTPHeaders": {
+                "transfer-encoding": "chunked", 
+                "vary": "Accept-Encoding", 
+                "server": "AmazonEC2", 
+                "content-type": "text/xml;charset=UTF-8", 
+                "date": "Sun, 13 Aug 2017 06:17:32 GMT"
+            }
+        }
+    }
+}
