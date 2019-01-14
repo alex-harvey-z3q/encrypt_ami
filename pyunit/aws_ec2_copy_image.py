@@ -45,13 +45,14 @@ class TestAwsEc2CopyImage(unittest.TestCase):
       'encrypted':     True,
       'source_region': 'ap-southeast-2',
       'name':          'jenkins',
+      'os':            'linux',
     }
 
   def tearDown(self):
     pass
 
   def test_get_account_id(self):
-    self.assertFalse(get_account_id())
+    self.assertEquals('123456781234', get_account_id())
 
   def test_get_image_location(self):
     acc = get_image_location('ami-52293031')
@@ -75,7 +76,8 @@ class TestAwsEc2CopyImage(unittest.TestCase):
         'source_image_id': 'ami-52293031',
         'encrypted':     True,
         'source_region': 'ap-southeast-2',
-        'name':          'unencrypted-jenkins-201701011111'
+        'name':          'unencrypted-jenkins-201701011111',
+        'os':            'linux',
       },
       kwargs,
     )
@@ -86,7 +88,8 @@ class TestAwsEc2CopyImage(unittest.TestCase):
       'source_image_id': 'ami-52293031',
       'encrypted':     True,
       'source_region': 'ap-southeast-2',
-      'name':          'unencrypted-jenkins-201701011111'
+      'name':          'unencrypted-jenkins-201701011111',
+      'os':            'linux',
     }
     wait_for_ami('ami-23061e40', **kwargs)
     self.assertTrue(os.path.exists('Encrypt_AMI_ID.txt'))
@@ -110,6 +113,7 @@ class TestAwsEc2CopyImage(unittest.TestCase):
         'encrypted':     True,
         'source_region': 'ap-southeast-2',
         'name':          'encrypted-jenkins-201701011111',
+        'os':            'linux',
       },
       kwargs,
     )
