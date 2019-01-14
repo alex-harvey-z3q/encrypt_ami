@@ -35,86 +35,11 @@ def get_args():
         help="The name of the new AMI in the destination region.")
   return parser.parse_args()
 
-def copy_ec2_image(**kwargs):
-  client = get_ec2_client()
-  if os.environ.get('DATE_TIME'):
-    kwargs['name'] += "-" + os.environ['DATE_TIME']
-  if kwargs['encrypted']:
-    kwargs['name'] = "encrypted-" + kwargs['name']
-  sys.stdout.write("Creating the AMI: %s\n" %kwargs['name'])
-  sys.stdout.flush()
-  response = client.copy_image(DryRun=False, SourceRegion=kwargs['source_region'], SourceImageId=kwargs['source_ami_id'], Name=kwargs['name'], Description=kwargs['description'], Encrypted=kwargs['encrypted'], KmsKeyId=kwargs['kms_key_id'])
-  sys.stdout.write("AMI: %s\n" %response['ImageId'])
-  sys.stdout.flush()
-  return response['ImageId'], kwargs
-
-def create_ec2_image(instance_id, **kwargs):
-  client = get_ec2_client()
-  if os.environ.get('DATE_TIME'):
-    kwargs['name'] += "-" + os.environ['DATE_TIME']
-  kwargs['name'] = "unencrypted-" + kwargs['name']
-  sys.stdout.write("Creating the AMI: %s\n" %kwargs['name'])
-  sys.stdout.flush()
-  response = client.create_image(DryRun=False, InstanceId = instance_id, Name=kwargs['name'])
-  return response['ImageId'], kwargs
-
-def create_ec2_tags(instance_id, **kwargs):
-  client = get_ec2_client()
-  client.create_tags(DryRun=False, Resources=[ instance_id ], Tags=[ { 'Key': 'Name', 'Value': 'encrypt-'+kwargs['name']+'-build' } ])
-  client.create_tags(DryRun=False, Resources=[ instance_id ], Tags=[ { 'Key': 'CC', 'Value': 'AP074' } ])
-  client.create_tags(DryRun=False, Resources=[ instance_id ], Tags=[ { 'Key': 'StopHour', 'Value': 'DoNotStop' } ])
-  return
-
-def deregister_ec2_image(ami_id):
-  client = get_ec2_client()
-  sys.stdout.write("Deregistering the AMI: %s\n" %ami_id)
-  sys.stdout.flush()
-  return client.deregister_image(DryRun=False, ImageId=ami_id)
-
-def get_account_id():
-  try:
-    # We're running in an ec2 instance, get the account id from the
-    # instance profile ARN
-    return json.loads(urllib2.urlopen('http://169.254.169.254/latest/meta-data/iam/info/', None, 1).read())['InstanceProfileArn'].split(':')[4]
-  except:
-    try:
-      # We're not on an ec2 instance but have api keys, get the account
-      # id from the user ARN
-      return boto3.client('iam').get_user()['User']['Arn'].split(':')[4]
-    except:
-      return False
-
-def get_ec2_client():
+def boto3_client_ec2():
   return boto3.client('ec2')
 
-def get_ec2_image_account_id(ami_id):
-  client = get_ec2_client()
-  response = client.describe_images(DryRun=False, ImageIds=[ami_id])
-  return response['Images'][0]['ImageLocation'].split('/')[0]
-
-def get_ec2_image_status(ami_id, **kwargs):
-  client = get_ec2_client()
-  sys.stdout.write("Waiting for AMI to become ready...\n")
-  sys.stdout.flush()
-  while True:
-    response = client.describe_images(DryRun=False, ImageIds=[ami_id])
-    if response['Images'][0]['State'] == 'available':
-      sys.stdout.write("AMI successfully created: %s\n" %ami_id)
-      sys.stdout.flush()
-      if os.environ.get('JOB_NAME'):
-        filename = os.environ['JOB_NAME'] + "_ID.txt"
-      else:
-        filename = kwargs['name'].title() + "_AMI_ID.txt"
-      fd = open(filename, 'w')
-      fd.write(ami_id + "\n")
-      fd.close()
-      return 0
-    sys.stdout.write("state: %s\n" %response['Images'][0]['State'])
-    sys.stdout.flush()
-    time.sleep(10)
-
 def get_ec2_instance_status(instance_id, status):
-  client = get_ec2_client()
+  client = boto3_client_ec2()
   if status == 'running':
     sys.stdout.write("Waiting for instance (%s) to become ready...\n" %instance_id)
     sys.stdout.flush()
@@ -164,20 +89,97 @@ def get_ec2_instance_status(instance_id, status):
         pass
     return
 
-def get_ec2_subnet_ids(tag_name):
-  client = get_ec2_client()
-  response = client.describe_subnets(DryRun=False, Filters=[ { 'Name': 'tag:Name', 'Values': [ tag_name ] } ])
-  return [subnet['SubnetId'] for subnet in response['Subnets']]
+def get_account_id():
+  try:
+    # We're running in an ec2 instance, get the account id from the
+    # instance profile ARN
+    return json.loads(urllib2.urlopen('http://169.254.169.254/latest/meta-data/iam/info/', None, 1).read())['InstanceProfileArn'].split(':')[4]
+  except:
+    try:
+      # We're not on an ec2 instance but have api keys, get the account
+      # id from the user ARN
+      return boto3.client('iam').get_user()['User']['Arn'].split(':')[4]
+    except:
+      return False
 
-def launch_ec2_instance(**kwargs):
-  client = get_ec2_client()
+def get_image_location(image_id):
+  client = boto3_client_ec2()
+  response = client.describe_images(DryRun=False, ImageIds=[image_id])
+  return response['Images'][0]['ImageLocation'].split('/')[0]
+
+def ec2_copy_image(**kwargs):
+  client = boto3_client_ec2()
+  if os.environ.get('DATE_TIME'):
+    kwargs['name'] += "-" + os.environ['DATE_TIME']
+  if kwargs['encrypted']:
+    kwargs['name'] = "encrypted-" + kwargs['name']
+
+  sys.stdout.write("Creating the AMI: %s\n" % kwargs['name'])
+  sys.stdout.flush()
+
+  response = client.copy_image(
+          DryRun=False,
+          SourceRegion=kwargs['source_region'],
+          SourceImageId=kwargs['source_ami_id'],
+          Name=kwargs['name'],
+          Description=kwargs['description'],
+          Encrypted=kwargs['encrypted'],
+          KmsKeyId=kwargs['kms_key_id'])
+
+  sys.stdout.write("AMI: %s\n" %response['ImageId'])
+  sys.stdout.flush()
+
+  return response['ImageId'], kwargs
+
+def wait_for_ami(ami_id, **kwargs):
+  client = boto3_client_ec2()
+
+  sys.stdout.write("Waiting for AMI to become ready...\n")
+  sys.stdout.flush()
+
+  while True:
+    response = client.describe_images(DryRun=False, ImageIds=[ami_id])
+    if response['Images'][0]['State'] == 'available':
+
+      sys.stdout.write("AMI successfully created: %s\n" %ami_id)
+      sys.stdout.flush()
+
+      if os.environ.get('JOB_NAME'):
+        filename = os.environ['JOB_NAME'] + "_ID.txt"
+      else:
+        filename = kwargs['name'].title() + "_AMI_ID.txt"
+
+      fd = open(filename, 'w')
+      fd.write(ami_id + "\n")
+      fd.close()
+      return 0
+
+    sys.stdout.write("state: %s\n" %response['Images'][0]['State'])
+    sys.stdout.flush()
+
+    time.sleep(10)
+
+def terminate_ec2_instance(instance_id):
+  client = boto3_client_ec2()
+  sys.stdout.write("Terminating the source AWS instance...\n")
+  sys.stdout.flush()
+  response = client.terminate_instances(DryRun=False, InstanceIds=[ instance_id ])
+  get_ec2_instance_status(instance_id, 'terminated')
+
+def deregister_ec2_image(ami_id):
+  client = boto3_client_ec2()
+  sys.stdout.write("Deregistering the AMI: %s\n" %ami_id)
+  sys.stdout.flush()
+  return client.deregister_image(DryRun=False, ImageId=ami_id)
+
+def ec2_run_instances(**kwargs):
+  client = boto3_client_ec2()
+
   sys.stdout.write("Launching a source AWS instance...\n")
   sys.stdout.flush()
 
-  if os.environ.get('AWS_BACKEND_SUBNET_IDS'):
-    subnet_id = random.choice(os.environ.get('AWS_BACKEND_SUBNET_IDS').split(','))
-  else:
-    subnet_id = random.choice(get_ec2_subnet_ids('*-BackEnd-*'))
+  subnet_id = random.choice(os.environ.get('AWS_BACKEND_SUBNET_IDS').split(','))
+
   if kwargs['name'].startswith('cloud2-win2k'):
 
     # FIXME. This really belongs in its own function.
@@ -236,28 +238,60 @@ def launch_ec2_instance(**kwargs):
     }
     </powershell> """
 
-    response = client.run_instances(DryRun=False, ImageId=kwargs['source_ami_id'], InstanceType='c4.2xlarge', MinCount=1, MaxCount=1, SubnetId=subnet_id, UserData=user_data_script)
+    response = client.run_instances(DryRun=False,
+          ImageId=kwargs['source_ami_id'],
+          InstanceType='c4.2xlarge',
+          MinCount=1,
+          MaxCount=1,
+          SubnetId=subnet_id,
+          UserData=user_data_script)
+
   else:
-    response = client.run_instances(DryRun=False, ImageId=kwargs['source_ami_id'], InstanceType='c4.2xlarge', MinCount=1, MaxCount=1, SubnetId=subnet_id)
+    response = client.run_instances(DryRun=False,
+          ImageId=kwargs['source_ami_id'],
+          InstanceType='c4.2xlarge',
+          MinCount=1,
+          MaxCount=1,
+          SubnetId=subnet_id)
+
   instance_id = response['Instances'][0]['InstanceId']
   sys.stdout.write("Instance ID: %s\n" %instance_id)
-  create_ec2_tags(instance_id, **kwargs)
+  ec2_create_tags(instance_id, **kwargs)
   get_ec2_instance_status(instance_id, 'running')
   return instance_id
 
-def stop_ec2_instance(instance_id):
-  client = get_ec2_client()
+def ec2_create_tags(instance_id, **kwargs):
+  client = boto3_client_ec2()
+  client.create_tags(
+          DryRun=False,
+          Resources=[instance_id],
+          Tags=[{"Key": "Foo", "Value": "Bar"}])
+  return
+
+def ec2_stop_instances(instance_id):
+  client = boto3_client_ec2()
   sys.stdout.write("Stopping the source AWS instance...\n")
   sys.stdout.flush()
   response = client.stop_instances(DryRun=False, InstanceIds=[ instance_id ])
   get_ec2_instance_status(instance_id, 'stopped')
 
-def terminate_ec2_instance(instance_id):
-  client = get_ec2_client()
-  sys.stdout.write("Terminating the source AWS instance...\n")
+def ec2_create_image(instance_id, **kwargs):
+  client = boto3_client_ec2()
+
+  if os.environ.get('DATE_TIME'):
+    kwargs['name'] += "-" + os.environ['DATE_TIME']
+
+  kwargs['name'] = "unencrypted-" + kwargs['name']
+
+  sys.stdout.write("Creating the AMI: %s\n" %kwargs['name'])
   sys.stdout.flush()
-  response = client.terminate_instances(DryRun=False, InstanceIds=[ instance_id ])
-  get_ec2_instance_status(instance_id, 'terminated')
+
+  response = client.create_image(
+          DryRun=False,
+          InstanceId = instance_id,
+          Name=kwargs["name"])
+
+  return response["ImageId"], kwargs
 
 def main():
   if os.environ.get('BOTO_RECORD'):
@@ -269,18 +303,18 @@ def main():
 
   args = get_args()
   try:
-    if get_account_id() == get_ec2_image_account_id(vars(args)['source_ami_id']):
-      ami_id, kwargs = copy_ec2_image(**vars(args))
-      get_ec2_image_status(ami_id, **kwargs)
+    if get_account_id() == get_image_location(vars(args)['source_ami_id']):
+      ami_id, kwargs = ec2_copy_image(**vars(args))
+      wait_for_ami(ami_id, **kwargs)
     else:
-      instance_id = launch_ec2_instance(**vars(args))
-      stop_ec2_instance(instance_id)
-      unencrypted_ami_id, kwargs = create_ec2_image(instance_id, **vars(args))
-      get_ec2_image_status(unencrypted_ami_id, **kwargs)
+      instance_id = ec2_run_instances(**vars(args))
+      ec2_stop_instances(instance_id)
+      unencrypted_ami_id, kwargs = ec2_create_image(instance_id, **vars(args))
+      wait_for_ami(unencrypted_ami_id, **kwargs)
       terminate_ec2_instance(instance_id)
       vars(args)['source_ami_id'] = unencrypted_ami_id 
-      encrypted_ami_id, kwargs = copy_ec2_image(**vars(args))
-      get_ec2_image_status(encrypted_ami_id, **kwargs)
+      encrypted_ami_id, kwargs = ec2_copy_image(**vars(args))
+      wait_for_ami(encrypted_ami_id, **kwargs)
       deregister_ec2_image(unencrypted_ami_id)
   except KeyboardInterrupt:
     sys.exit("User aborted script!")

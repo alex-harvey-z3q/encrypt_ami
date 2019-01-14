@@ -54,21 +54,21 @@ class TestAwsEc2CopyImage(unittest.TestCase):
   def test_get_account_id(self):
     self.assertFalse(get_account_id())
 
-  def test_get_ec2_image_account_id(self):
-    acc = get_ec2_image_account_id('ami-52293031')
+  def test_get_image_location(self):
+    acc = get_image_location('ami-52293031')
     self.assertEquals('625972064986', acc)
 
-  def test_launch_ec2_instance(self):
-    instance_id = launch_ec2_instance(**self.args)
+  def test_ec2_run_instances(self):
+    instance_id = ec2_run_instances(**self.args)
     self.assertEquals('i-0481ed4a67454b5e7', instance_id)
 
   @mock.patch('aws_ec2_copy_image.get_ec2_instance_status')
-  def test_stop_ec2_instance(self, patched_get_ec2_instance_status):
-    stop_ec2_instance('i-0481ed4a67454b5e7')
+  def test_ec2_stop_instances(self, patched_get_ec2_instance_status):
+    ec2_stop_instances('i-0481ed4a67454b5e7')
     patched_get_ec2_instance_status.assert_called_once_with('i-0481ed4a67454b5e7', 'stopped')
 
-  def test_create_ec2_image(self):
-    unencrypted_ami_id, kwargs = create_ec2_image('i-0481ed4a67454b5e7', **self.args)
+  def test_ec2_create_image(self):
+    unencrypted_ami_id, kwargs = ec2_create_image('i-0481ed4a67454b5e7', **self.args)
     self.assertEquals('ami-23061e40', unencrypted_ami_id)
     self.assertEquals(
       {
@@ -82,7 +82,7 @@ class TestAwsEc2CopyImage(unittest.TestCase):
       kwargs,
     )
 
-  def test_get_ec2_image_status(self):
+  def test_wait_for_ami(self):
     kwargs = {
       'description':   '',
       'source_ami_id': 'ami-52293031',
@@ -91,7 +91,7 @@ class TestAwsEc2CopyImage(unittest.TestCase):
       'source_region': 'ap-southeast-2',
       'name':          'unencrypted-jenkins-201701011111'
     }
-    get_ec2_image_status('ami-23061e40', **kwargs)
+    wait_for_ami('ami-23061e40', **kwargs)
     self.assertTrue(os.path.exists('Encrypt_AMI_ID.txt'))
     content = open('Encrypt_AMI_ID.txt', 'r').read().rstrip()
     self.assertEquals(content, 'ami-23061e40')
@@ -102,9 +102,9 @@ class TestAwsEc2CopyImage(unittest.TestCase):
     terminate_ec2_instance('i-0481ed4a67454b5e7')
     patched_get_ec2_instance_status.assert_called_once_with('i-0481ed4a67454b5e7', 'terminated')
 
-  def test_copy_ec2_image(self):
+  def test_ec2_copy_image(self):
     self.args['source_ami_id'] = 'ami-23061e40'
-    encrypted_ami_id, kwargs = copy_ec2_image(**self.args)
+    encrypted_ami_id, kwargs = ec2_copy_image(**self.args)
     self.assertEquals('ami-2939214a', encrypted_ami_id)
     self.assertEquals(
       {
