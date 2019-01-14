@@ -2,3 +2,4 @@ awscli
 placebo
 mock
 boto3
+ipdb
