@@ -7,6 +7,7 @@ import random
 import sys
 import time
 import json
+import urllib2
 
 def get_args():
   parser = argparse.ArgumentParser()
