@@ -1,10 +1,39 @@
 #!/usr/bin/env python
+
 import argparse
 import boto3
 import os
 import random
 import sys
 import time
+
+def get_args():
+  parser = argparse.ArgumentParser()
+  parser.add_argument(
+    "--source-region",
+        action="store", required=False, metavar="SOURCE_AMI_REGION", dest="source_region", default="ap-southeast-2",
+        help="The name of the region that contains the AMI to copy.")
+  parser.add_argument(
+    "--description",
+        action="store", required=False, metavar="DESCRIPTION", dest="description", default="",
+        help="A description for the new AMI in the destination region.")
+  parser.add_argument(
+    "--encrypted",
+        required=False, action="store_true",
+        help="Specifies whether the destination snapshots of the copied image should be encrypted.")
+  parser.add_argument(
+    "--kms-key-id",
+        action="store", required=False, metavar="KMS_KEY_ID", dest="kms_key_id", default="",
+        help="The full ARN of the AWS Key Management Service (AWS KMS) CMK to use when encrypting the snapshots of an image during a copy operation. This parameter is only required if you want to use a non-default CMK; if this parameter is not specified, the default CMK for EBS is used.")
+  parser.add_argument(
+    "--source-image-id",
+        action="store", required=True, metavar="SOURCE_AMI_ID", dest="source_ami_id",
+        help="The ID of the AMI to copy.")
+  parser.add_argument(
+    "--name",
+        action="store",
+        help="The name of the new AMI in the destination region.")
+  return parser.parse_args()
 
 def copy_ec2_image(**kwargs):
   client = get_ec2_client()
@@ -41,16 +70,6 @@ def deregister_ec2_image(ami_id):
   sys.stdout.write("Deregistering the AMI: %s\n" %ami_id)
   sys.stdout.flush()
   return client.deregister_image(DryRun=False, ImageId=ami_id)
-
-def get_args():
-  parser = argparse.ArgumentParser()
-  parser.add_argument('--source-region', action='store', required=False, metavar='SOURCE_AMI_REGION', dest='source_region', default='ap-southeast-2', help='The name of the region that contains the AMI to copy.')
-  parser.add_argument('--description', action='store', required=False, metavar='DESCRIPTION', dest='description', default='', help=' A description for the new AMI in the destination region.')
-  parser.add_argument('--encrypted', required=False, action='store_true', help='Specifies whether the destination snapshots of the copied image should be encrypted.')
-  parser.add_argument('--kms-key-id', action='store', required=False, metavar='KMS_KEY_ID', dest='kms_key_id', default='', help='The full ARN of the AWS Key Management Service (AWS KMS) CMK to use when encrypting the snapshots of an image during a copy operation. This parameter is only required if you want to use a non-default CMK; if this parameter is not specified, the default CMK for EBS is used.')
-  parser.add_argument('--source-image-id', action='store', required=True, metavar='SOURCE_AMI_ID', dest='source_ami_id', help='The ID of the AMI to copy.')
-  parser.add_argument('name', action='store', help='The name of the new AMI in the destination region.')
-  return parser.parse_args()
 
 def get_account_id():
   try:
