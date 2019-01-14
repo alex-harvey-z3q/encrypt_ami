@@ -97,34 +97,30 @@ def user_data_script():
 def get_ec2_instance_status(instance_id, status):
   client = boto3_client_ec2()
   if status == 'running':
-    sys.stdout.write("Waiting for instance (%s) to become ready...\n" %instance_id)
-    sys.stdout.flush()
+    print("Waiting for instance (%s) to become ready...\n" % instance_id)
     while True:
-      response = client.describe_instances(DryRun=False, InstanceIds=[ instance_id ])
+      response = client.describe_instances(DryRun=False, InstanceIds=[instance_id])
       try:
         if response['Reservations'][0]['Instances'][0]['State']['Name'] == status:
           break
         time.sleep(1)
       except:
         pass
-    sys.stdout.write("Waiting for instance (%s) to become healthy...\n" %instance_id)
-    sys.stdout.flush()
+    print("Waiting for instance (%s) to become healthy...\n" % instance_id)
     while True:
-      response = client.describe_instance_status(DryRun=False, InstanceIds=[ instance_id ])
+      response = client.describe_instance_status(DryRun=False, InstanceIds=[instance_id])
       try:
         if response['InstanceStatuses'][0]['SystemStatus']['Status'] == response['InstanceStatuses'][0]['InstanceStatus']['Status'] == 'ok':
           break
         time.sleep(1)
       except:
         pass
-    sys.stdout.write("Instance up and running!!\n")
-    sys.stdout.flush()
+    print("Instance up and running!!\n")
     return
   elif status == 'stopped':
-    sys.stdout.write("Waiting for instance (%s) to stop...\n" %instance_id)
-    sys.stdout.flush()
+    print("Waiting for instance (%s) to stop...\n" % instance_id)
     while True:
-      response = client.describe_instances(DryRun=False, InstanceIds=[ instance_id ])
+      response = client.describe_instances(DryRun=False, InstanceIds=[instance_id])
       try:
         if response['Reservations'][0]['Instances'][0]['State']['Name'] == status:
           break
@@ -133,10 +129,9 @@ def get_ec2_instance_status(instance_id, status):
         pass
     return
   elif status == 'terminated':
-    sys.stdout.write("Waiting for instance (%s) to terminate...\n" %instance_id)
-    sys.stdout.flush()
+    print("Waiting for instance (%s) to terminate...\n" % instance_id)
     while True:
-      response = client.describe_instances(DryRun=False, InstanceIds=[ instance_id ])
+      response = client.describe_instances(DryRun=False, InstanceIds=[instance_id])
       try:
         if response['Reservations'][0]['Instances'][0]['State']['Name'] == status:
           break
@@ -170,8 +165,7 @@ def ec2_copy_image(**kwargs):
   if kwargs['encrypted']:
     kwargs['name'] = "encrypted-" + kwargs['name']
 
-  sys.stdout.write("Creating the AMI: %s\n" % kwargs['name'])
-  sys.stdout.flush()
+  print("Creating the AMI: %s\n" % kwargs['name'])
 
   response = client.copy_image(
           DryRun=False,
@@ -182,23 +176,20 @@ def ec2_copy_image(**kwargs):
           Encrypted=kwargs['encrypted'],
           KmsKeyId=kwargs['kms_key_id'])
 
-  sys.stdout.write("AMI: %s\n" %response['ImageId'])
-  sys.stdout.flush()
+  print("AMI: %s\n" %response['ImageId'])
 
   return response['ImageId'], kwargs
 
 def wait_for_ami(ami_id, **kwargs):
   client = boto3_client_ec2()
 
-  sys.stdout.write("Waiting for AMI to become ready...\n")
-  sys.stdout.flush()
+  print("Waiting for AMI to become ready...\n")
 
   while True:
     response = client.describe_images(DryRun=False, ImageIds=[ami_id])
     if response['Images'][0]['State'] == 'available':
 
-      sys.stdout.write("AMI successfully created: %s\n" %ami_id)
-      sys.stdout.flush()
+      print("AMI successfully created: %s\n" %ami_id)
 
       if os.environ.get('JOB_NAME'):
         filename = os.environ['JOB_NAME'] + "_ID.txt"
@@ -210,29 +201,25 @@ def wait_for_ami(ami_id, **kwargs):
       fd.close()
       return 0
 
-    sys.stdout.write("state: %s\n" %response['Images'][0]['State'])
-    sys.stdout.flush()
+    print("state: %s\n" %response['Images'][0]['State'])
 
     time.sleep(10)
 
 def terminate_ec2_instance(instance_id):
   client = boto3_client_ec2()
-  sys.stdout.write("Terminating the source AWS instance...\n")
-  sys.stdout.flush()
-  response = client.terminate_instances(DryRun=False, InstanceIds=[ instance_id ])
+  print("Terminating the source AWS instance...\n")
+  response = client.terminate_instances(DryRun=False, InstanceIds=[instance_id])
   get_ec2_instance_status(instance_id, 'terminated')
 
 def deregister_ec2_image(ami_id):
   client = boto3_client_ec2()
-  sys.stdout.write("Deregistering the AMI: %s\n" %ami_id)
-  sys.stdout.flush()
+  print("Deregistering the AMI: %s\n" %ami_id)
   return client.deregister_image(DryRun=False, ImageId=ami_id)
 
 def ec2_run_instances(**kwargs):
   client = boto3_client_ec2()
 
-  sys.stdout.write("Launching a source AWS instance...\n")
-  sys.stdout.flush()
+  print("Launching a source AWS instance...\n")
 
   subnet_id = random.choice(os.environ.get('AWS_BACKEND_SUBNET_IDS').split(','))
 
@@ -249,7 +236,7 @@ def ec2_run_instances(**kwargs):
         UserData=user_data_script)
 
   instance_id = response['Instances'][0]['InstanceId']
-  sys.stdout.write("Instance ID: %s\n" %instance_id)
+  print("Instance ID: %s\n" %instance_id)
   ec2_create_tags(instance_id, **kwargs)
   get_ec2_instance_status(instance_id, 'running')
   return instance_id
@@ -264,9 +251,8 @@ def ec2_create_tags(instance_id, **kwargs):
 
 def ec2_stop_instances(instance_id):
   client = boto3_client_ec2()
-  sys.stdout.write("Stopping the source AWS instance...\n")
-  sys.stdout.flush()
-  response = client.stop_instances(DryRun=False, InstanceIds=[ instance_id ])
+  print("Stopping the source AWS instance...\n")
+  response = client.stop_instances(DryRun=False, InstanceIds=[instance_id])
   get_ec2_instance_status(instance_id, 'stopped')
 
 def ec2_create_image(instance_id, **kwargs):
@@ -277,8 +263,7 @@ def ec2_create_image(instance_id, **kwargs):
 
   kwargs['name'] = "unencrypted-" + kwargs['name']
 
-  sys.stdout.write("Creating the AMI: %s\n" %kwargs['name'])
-  sys.stdout.flush()
+  print("Creating the AMI: %s\n" % kwargs['name'])
 
   response = client.create_image(
           DryRun=False,
