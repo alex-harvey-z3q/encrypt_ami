@@ -45,7 +45,8 @@ def boto3_client_ec2():
   return boto3.client('ec2')
 
 def user_data_script():
-    return """ <powershell>
+  return """
+  <powershell>
     # Check for the Version of Operating System
     $Cmd = Get-WmiObject -Class Win32_OperatingSystem | ForEach-Object -MemberName Caption
     $Get_OS = $Cmd -match '(\d+)'
@@ -98,7 +99,8 @@ def user_data_script():
     } else {
       echo "No Operating System Found"
     }
-    </powershell> """
+  </powershell>
+  """
 
 def get_ec2_instance_status(instance_id, status):
   client = boto3_client_ec2()
