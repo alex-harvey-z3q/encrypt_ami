@@ -149,16 +149,12 @@ def get_ec2_instance_status(instance_id, status):
     return
 
 def get_account_id():
-  try:
-    # We're running in an ec2 instance, get the account id from the
-    # instance profile ARN
-    return json.loads(urllib2.urlopen('http://169.254.169.254/latest/meta-data/iam/info/', None, 1).read())['InstanceProfileArn'].split(':')[4]
-  except:
+  if 'AWS_SECURITY_TOKEN' in os.environ:
+    return boto3.client('sts').get_caller_identity().get('Account')
+  else:
     try:
-      # We're not on an ec2 instance but have api keys, get the account
-      # id from the user ARN
-      return boto3.client('iam').get_user()['User']['Arn'].split(':')[4]
-    except:
+      return json.loads(urllib2.urlopen('http://169.254.169.254/latest/meta-data/iam/info/', None, 1).read())['InstanceProfileArn'].split(':')[4]
+    except urllib2.HTTPError:
       return False
 
 def get_image_location(image_id):
