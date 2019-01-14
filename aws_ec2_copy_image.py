@@ -238,7 +238,7 @@ def ec2_run_instances(**kwargs):
         MinCount=1,
         MaxCount=1,
         SubnetId=subnet_id,
-        UserData=user_data_script)
+        UserData=user_data)
 
   instance_id = response['Instances'][0]['InstanceId']
   print("Instance ID: %s\n" %instance_id)
