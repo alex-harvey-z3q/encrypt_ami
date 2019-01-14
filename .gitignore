@@ -1,0 +1,3 @@
+virtualenv/
+sam-app/
+*.pyc
