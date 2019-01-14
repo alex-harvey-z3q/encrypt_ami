@@ -28,7 +28,7 @@ def get_args():
         help="The full ARN of the AWS Key Management Service (AWS KMS) CMK to use when encrypting the snapshots of an image during a copy operation. This parameter is only required if you want to use a non-default CMK; if this parameter is not specified, the default CMK for EBS is used.")
   parser.add_argument(
     "--source-image-id",
-        action="store", required=True, metavar="SOURCE_AMI_ID", dest="source_ami_id",
+        action="store", required=True, metavar="SOURCE_AMI_ID", dest="source_image_id",
         help="The ID of the AMI to copy.")
   parser.add_argument(
     "--name",
@@ -171,7 +171,7 @@ def ec2_copy_image(**kwargs):
   response = client.copy_image(
           DryRun=False,
           SourceRegion=kwargs['source_region'],
-          SourceImageId=kwargs['source_ami_id'],
+          SourceImageId=kwargs['source_image_id'],
           Name=kwargs['name'],
           Description=kwargs['description'],
           Encrypted=kwargs['encrypted'],
@@ -229,7 +229,7 @@ def ec2_run_instances(**kwargs):
       user_data_script = user_data_script()
 
   response = client.run_instances(DryRun=False,
-        ImageId=kwargs['source_ami_id'],
+        ImageId=kwargs['source_image_id'],
         InstanceType='c4.2xlarge',
         MinCount=1,
         MaxCount=1,
@@ -283,7 +283,7 @@ def main():
 
   args = get_args()
   try:
-    if get_account_id() == get_image_location(vars(args)['source_ami_id']):
+    if get_account_id() == get_image_location(vars(args)['source_image_id']):
       ami_id, kwargs = ec2_copy_image(**vars(args))
       wait_for_ami(ami_id, **kwargs)
     else:
@@ -292,7 +292,7 @@ def main():
       unencrypted_ami_id, kwargs = ec2_create_image(instance_id, **vars(args))
       wait_for_ami(unencrypted_ami_id, **kwargs)
       terminate_ec2_instance(instance_id)
-      vars(args)['source_ami_id'] = unencrypted_ami_id 
+      vars(args)['source_image_id'] = unencrypted_ami_id 
       encrypted_ami_id, kwargs = ec2_copy_image(**vars(args))
       wait_for_ami(encrypted_ami_id, **kwargs)
       deregister_ec2_image(unencrypted_ami_id)

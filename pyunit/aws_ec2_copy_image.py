@@ -41,7 +41,7 @@ class TestAwsEc2CopyImage(unittest.TestCase):
     os.environ['JOB_NAME'] = 'Encrypt_AMI'
     self.args = {
       'description':   '',
-      'source_ami_id': 'ami-52293031',
+      'source_image_id': 'ami-52293031',
       'encrypted':     True,
       'kms_key_id':    '',
       'source_region': 'ap-southeast-2',
@@ -73,7 +73,7 @@ class TestAwsEc2CopyImage(unittest.TestCase):
     self.assertEquals(
       {
         'description':   '',
-        'source_ami_id': 'ami-52293031',
+        'source_image_id': 'ami-52293031',
         'encrypted':     True,
         'kms_key_id':    '',
         'source_region': 'ap-southeast-2',
@@ -85,7 +85,7 @@ class TestAwsEc2CopyImage(unittest.TestCase):
   def test_wait_for_ami(self):
     kwargs = {
       'description':   '',
-      'source_ami_id': 'ami-52293031',
+      'source_image_id': 'ami-52293031',
       'encrypted':     True,
       'kms_key_id':    '',
       'source_region': 'ap-southeast-2',
@@ -103,13 +103,13 @@ class TestAwsEc2CopyImage(unittest.TestCase):
     patched_get_ec2_instance_status.assert_called_once_with('i-0481ed4a67454b5e7', 'terminated')
 
   def test_ec2_copy_image(self):
-    self.args['source_ami_id'] = 'ami-23061e40'
+    self.args['source_image_id'] = 'ami-23061e40'
     encrypted_ami_id, kwargs = ec2_copy_image(**self.args)
     self.assertEquals('ami-2939214a', encrypted_ami_id)
     self.assertEquals(
       {
         'description':   '',
-        'source_ami_id': 'ami-23061e40',
+        'source_image_id': 'ami-23061e40',
         'encrypted':     True,
         'kms_key_id':    '',
         'source_region': 'ap-southeast-2',
