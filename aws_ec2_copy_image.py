@@ -215,12 +215,21 @@ def deregister_ec2_image(ami_id):
   print("Deregistering the AMI: %s\n" %ami_id)
   return client.deregister_image(DryRun=False, ImageId=ami_id)
 
+def get_mac():
+  return urllib2.urlopen(
+    "http://169.254.169.254/latest/meta-data/network/interfaces/macs/").read()
+
+def get_subnet_id():
+  mac = get_mac()
+  url = "http://169.254.169.254/latest/meta-data/network/interfaces/macs/%s/subnet-id" % mac
+  return urllib2.urlopen(url).read()
+
 def ec2_run_instances(**kwargs):
   client = boto3_client_ec2()
 
   print("Launching a source AWS instance...\n")
 
-  subnet_id = random.choice(os.environ.get('AWS_BACKEND_SUBNET_IDS').split(','))
+  subnet_id = get_subnet_id()
 
   if kwargs['os'] == "windows":
     user_data = str(user_data_script())
