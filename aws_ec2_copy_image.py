@@ -38,6 +38,62 @@ def get_args():
 def boto3_client_ec2():
   return boto3.client('ec2')
 
+def user_data_script():
+    return """ <powershell>
+    # Check for the Version of Operating System
+    $Cmd = Get-WmiObject -Class Win32_OperatingSystem | ForEach-Object -MemberName Caption
+    $Get_OS = $Cmd -match '(\d+)'
+
+    # Query and get the version number of the OS
+    if ($Get_Os) {
+      $Os_Type = $matches[1]
+    }
+
+    if ($Os_Type -eq '2012') {
+      Write-Host "The operating system is $Os_Type"
+      # Configuring the Launch Setting for win2k12
+      $EC2SettingsFile = "C:\\Program Files\\Amazon\\Ec2ConfigService\\Settings\\Config.xml"
+      $xml = [xml](get-content $EC2SettingsFile)
+      $xmlElement = $xml.get_DocumentElement()
+      $xmlElementToModify = $xmlElement.Plugins
+      $enableElements = "Ec2SetPassword", `
+        "Ec2SetComputerName", `
+        "Ec2HandleUserData", `
+        "Ec2DynamicBootVolumeSize"
+      $xmlElementToModify.Plugin | Where-Object {$enableElements -contains $_.name} | Foreach-Object {$_.State="Enabled"}
+      $xml.Save($EC2SettingsFile)
+
+      # Sysprep Configuration setting for win2k12
+      $EC2SettingsFile = "C:\\Program Files\\Amazon\\Ec2ConfigService\\Settings\\BundleConfig.xml"
+      $xml = [xml](get-content $EC2SettingsFile)
+      $xmlElement = $xml.get_DocumentElement()
+      foreach ($element in $xmlElement.Property) {
+        if ($element.Name -eq "AutoSysprep") {
+          $element.Value = "Yes"
+        }
+      }
+      $xml.Save($EC2SettingsFile)
+
+    } elseif ($Os_Type -eq '2016') {
+      Write-Host "The operating system is $Os_Type"
+      # Configuring the Launch setting to enable the initialization for windows server 2016
+      # Changes are made to LaunchConfig.json file
+      $LaunchConfigFile = "C:\\ProgramData\\Amazon\\EC2-Windows\\Launch\\Config\\LaunchConfig.json"
+      $jsoncontent = Get-Content $LaunchConfigFile | ConvertFrom-Json
+      $jsoncontent.SetComputerName = 'true'
+      $jsoncontent | ConvertTo-Json  | set-content $LaunchConfigFile
+
+      # This script schedules the instance to initialize during the next boot.
+      C:\ProgramData\Amazon\EC2-Windows\Launch\Scripts\InitializeInstance.ps1 -Schedule
+
+      # The EC2Launch service runs Sysprep, a Microsoft tool that enables creation of customized Windows AMI that can be reused
+      C:\ProgramData\Amazon\EC2-Windows\Launch\Scripts\SysprepInstance.ps1
+
+    } else {
+      echo "No Operating System Found"
+    }
+    </powershell> """
+
 def get_ec2_instance_status(instance_id, status):
   client = boto3_client_ec2()
   if status == 'running':
@@ -180,79 +236,17 @@ def ec2_run_instances(**kwargs):
 
   subnet_id = random.choice(os.environ.get('AWS_BACKEND_SUBNET_IDS').split(','))
 
+  user_data_script = ""
   if kwargs['name'].startswith('cloud2-win2k'):
+      user_data_script = user_data_script()
 
-    # FIXME. This really belongs in its own function.
-    user_data_script = """ <powershell>
-    # Check for the Version of Operating System
-    $Cmd = Get-WmiObject -Class Win32_OperatingSystem | ForEach-Object -MemberName Caption
-    $Get_OS = $Cmd -match '(\d+)'
-
-    # Query and get the version number of the OS
-    if ($Get_Os) {
-      $Os_Type = $matches[1]
-    }
-
-    if ($Os_Type -eq '2012') {
-      Write-Host "The operating system is $Os_Type"
-      # Configuring the Launch Setting for win2k12
-      $EC2SettingsFile = "C:\\Program Files\\Amazon\\Ec2ConfigService\\Settings\\Config.xml"
-      $xml = [xml](get-content $EC2SettingsFile)
-      $xmlElement = $xml.get_DocumentElement()
-      $xmlElementToModify = $xmlElement.Plugins
-      $enableElements = "Ec2SetPassword", `
-        "Ec2SetComputerName", `
-        "Ec2HandleUserData", `
-        "Ec2DynamicBootVolumeSize"
-      $xmlElementToModify.Plugin | Where-Object {$enableElements -contains $_.name} | Foreach-Object {$_.State="Enabled"}
-      $xml.Save($EC2SettingsFile)
-
-      # Sysprep Configuration setting for win2k12
-      $EC2SettingsFile = "C:\\Program Files\\Amazon\\Ec2ConfigService\\Settings\\BundleConfig.xml"
-      $xml = [xml](get-content $EC2SettingsFile)
-      $xmlElement = $xml.get_DocumentElement()
-      foreach ($element in $xmlElement.Property) {
-        if ($element.Name -eq "AutoSysprep") {
-          $element.Value = "Yes"
-        }
-      }
-      $xml.Save($EC2SettingsFile)
-
-    } elseif ($Os_Type -eq '2016') {
-      Write-Host "The operating system is $Os_Type"
-      # Configuring the Launch setting to enable the initialization for windows server 2016
-      # Changes are made to LaunchConfig.json file
-      $LaunchConfigFile = "C:\\ProgramData\\Amazon\\EC2-Windows\\Launch\\Config\\LaunchConfig.json"
-      $jsoncontent = Get-Content $LaunchConfigFile | ConvertFrom-Json
-      $jsoncontent.SetComputerName = 'true'
-      $jsoncontent | ConvertTo-Json  | set-content $LaunchConfigFile
-
-      # This script schedules the instance to initialize during the next boot.
-      C:\ProgramData\Amazon\EC2-Windows\Launch\Scripts\InitializeInstance.ps1 -Schedule
-
-      # The EC2Launch service runs Sysprep, a Microsoft tool that enables creation of customized Windows AMI that can be reused
-      C:\ProgramData\Amazon\EC2-Windows\Launch\Scripts\SysprepInstance.ps1
-
-    } else {
-      echo "No Operating System Found"
-    }
-    </powershell> """
-
-    response = client.run_instances(DryRun=False,
-          ImageId=kwargs['source_ami_id'],
-          InstanceType='c4.2xlarge',
-          MinCount=1,
-          MaxCount=1,
-          SubnetId=subnet_id,
-          UserData=user_data_script)
-
-  else:
-    response = client.run_instances(DryRun=False,
-          ImageId=kwargs['source_ami_id'],
-          InstanceType='c4.2xlarge',
-          MinCount=1,
-          MaxCount=1,
-          SubnetId=subnet_id)
+  response = client.run_instances(DryRun=False,
+        ImageId=kwargs['source_ami_id'],
+        InstanceType='c4.2xlarge',
+        MinCount=1,
+        MaxCount=1,
+        SubnetId=subnet_id,
+        UserData=user_data_script)
 
   instance_id = response['Instances'][0]['InstanceId']
   sys.stdout.write("Instance ID: %s\n" %instance_id)
