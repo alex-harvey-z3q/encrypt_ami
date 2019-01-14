@@ -6,7 +6,7 @@ import mock
 from mock import Mock
 
 import sys
-sys.path.insert(0, './scripts')
+sys.path.insert(0, '.')
 from aws_ec2_copy_image import *
 
 import boto3
