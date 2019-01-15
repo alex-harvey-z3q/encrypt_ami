@@ -101,7 +101,7 @@ def user_data_script():
 def get_ec2_instance_status(instance_id, status):
   client = boto3_client_ec2()
   if status == 'running':
-    print("Waiting for instance (%s) to become ready...\n" % instance_id)
+    print("Waiting for instance (%s) to become ready..." % instance_id)
     while True:
       response = client.describe_instances(DryRun=False, InstanceIds=[instance_id])
       try:
@@ -110,7 +110,7 @@ def get_ec2_instance_status(instance_id, status):
         time.sleep(1)
       except:
         pass
-    print("Waiting for instance (%s) to become healthy...\n" % instance_id)
+    print("Waiting for instance (%s) to become healthy..." % instance_id)
     while True:
       response = client.describe_instance_status(DryRun=False, InstanceIds=[instance_id])
       try:
@@ -119,10 +119,10 @@ def get_ec2_instance_status(instance_id, status):
         time.sleep(1)
       except:
         pass
-    print("Instance up and running!!\n")
+    print("Instance up and running!!")
     return
   elif status == 'stopped':
-    print("Waiting for instance (%s) to stop...\n" % instance_id)
+    print("Waiting for instance (%s) to stop..." % instance_id)
     while True:
       response = client.describe_instances(DryRun=False, InstanceIds=[instance_id])
       try:
@@ -133,7 +133,7 @@ def get_ec2_instance_status(instance_id, status):
         pass
     return
   elif status == 'terminated':
-    print("Waiting for instance (%s) to terminate...\n" % instance_id)
+    print("Waiting for instance (%s) to terminate..." % instance_id)
     while True:
       response = client.describe_instances(DryRun=False, InstanceIds=[instance_id])
       try:
@@ -165,7 +165,7 @@ def ec2_copy_image(**kwargs):
   if kwargs['encrypted']:
     kwargs['name'] = "encrypted-" + kwargs['name']
 
-  print("Creating the AMI: %s\n" % kwargs['name'])
+  print("Creating the AMI: %s" % kwargs['name'])
 
   response = client.copy_image(
           DryRun=False,
@@ -175,20 +175,20 @@ def ec2_copy_image(**kwargs):
           Description=kwargs['description'],
           Encrypted=kwargs['encrypted'])
 
-  print("AMI: %s\n" %response['ImageId'])
+  print("AMI: %s" %response['ImageId'])
 
   return response['ImageId'], kwargs
 
 def wait_for_ami(ami_id, **kwargs):
   client = boto3_client_ec2()
 
-  print("Waiting for AMI to become ready...\n")
+  print("Waiting for AMI to become ready...")
 
   while True:
     response = client.describe_images(DryRun=False, ImageIds=[ami_id])
     if response['Images'][0]['State'] == 'available':
 
-      print("AMI successfully created: %s\n" %ami_id)
+      print("AMI successfully created: %s" %ami_id)
 
       if os.environ.get('JOB_NAME'):
         filename = os.environ['JOB_NAME'] + "_ID.txt"
@@ -196,29 +196,29 @@ def wait_for_ami(ami_id, **kwargs):
         filename = kwargs['name'].title() + "_AMI_ID.txt"
 
       fd = open(filename, 'w')
-      fd.write(ami_id + "\n")
+      fd.write(ami_id + "")
       fd.close()
       return 0
 
-    print("state: %s\n" %response['Images'][0]['State'])
+    print("state: %s" %response['Images'][0]['State'])
 
     time.sleep(10)
 
 def terminate_ec2_instance(instance_id):
   client = boto3_client_ec2()
-  print("Terminating the source AWS instance...\n")
+  print("Terminating the source AWS instance...")
   response = client.terminate_instances(DryRun=False, InstanceIds=[instance_id])
   get_ec2_instance_status(instance_id, 'terminated')
 
 def deregister_ec2_image(ami_id):
   client = boto3_client_ec2()
-  print("Deregistering the AMI: %s\n" %ami_id)
+  print("Deregistering the AMI: %s" %ami_id)
   return client.deregister_image(DryRun=False, ImageId=ami_id)
 
 def ec2_run_instances(**kwargs):
   client = boto3_client_ec2()
 
-  print("Launching a source AWS instance...\n")
+  print("Launching a source AWS instance...")
 
   subnet_id = random.choice(os.environ.get('AWS_BACKEND_SUBNET_IDS').split(','))
 
@@ -236,7 +236,7 @@ def ec2_run_instances(**kwargs):
         UserData=user_data)
 
   instance_id = response['Instances'][0]['InstanceId']
-  print("Instance ID: %s\n" %instance_id)
+  print("Instance ID: %s" %instance_id)
   ec2_create_tags(instance_id, **kwargs)
   get_ec2_instance_status(instance_id, 'running')
   return instance_id
@@ -251,7 +251,7 @@ def ec2_create_tags(instance_id, **kwargs):
 
 def ec2_stop_instances(instance_id):
   client = boto3_client_ec2()
-  print("Stopping the source AWS instance...\n")
+  print("Stopping the source AWS instance...")
   response = client.stop_instances(DryRun=False, InstanceIds=[instance_id])
   get_ec2_instance_status(instance_id, 'stopped')
 
@@ -263,7 +263,7 @@ def ec2_create_image(instance_id, **kwargs):
 
   kwargs['name'] = "unencrypted-" + kwargs['name']
 
-  print("Creating the AMI: %s\n" % kwargs['name'])
+  print("Creating the AMI: %s" % kwargs['name'])
 
   response = client.create_image(
           DryRun=False,
