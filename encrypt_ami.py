@@ -179,28 +179,19 @@ def copy_image(**kwargs):
 
   return response['ImageId'], kwargs
 
-def wait_for_ami(ami_id, **kwargs):
+def wait_for_image_state(image_id, desired_state, **kwargs):
   client = boto3_client_ec2()
 
-  print("Waiting for AMI to become ready...")
+  print "Waiting for AMI to become %s..." % desired_state
 
   while True:
-    response = client.describe_images(DryRun=False, ImageIds=[ami_id])
-    if response['Images'][0]['State'] == 'available':
+    response = client.describe_images(DryRun=False, ImageIds=[image_id])
+    state = response['Images'][0]['State']
 
-      print("AMI successfully created: %s" %ami_id)
-
-      if os.environ.get('JOB_NAME'):
-        filename = os.environ['JOB_NAME'] + "_ID.txt"
-      else:
-        filename = kwargs['name'].title() + "_AMI_ID.txt"
-
-      fd = open(filename, 'w')
-      fd.write(ami_id + "")
-      fd.close()
-      return 0
-
-    print("state: %s" %response['Images'][0]['State'])
+    if state == desired_state:
+      break
+    else:
+      print "state: %s" % state
 
     time.sleep(10)
 
@@ -284,16 +275,16 @@ def main():
   try:
     if this_account() == account_of(vars(args)['source_image_id']):
       ami_id, kwargs = copy_image(**vars(args))
-      wait_for_ami(ami_id, **kwargs)
+      wait_for_image_state(ami_id, **kwargs)
     else:
       instance_id = run_instance(**vars(args))
       ec2_stop_instances(instance_id)
       unencrypted_ami_id, kwargs = ec2_create_image(instance_id, **vars(args))
-      wait_for_ami(unencrypted_ami_id, **kwargs)
+      wait_for_image_state(unencrypted_ami_id, **kwargs)
       terminate_instance(instance_id)
       vars(args)['source_image_id'] = unencrypted_ami_id 
       encrypted_ami_id, kwargs = copy_image(**vars(args))
-      wait_for_ami(encrypted_ami_id, **kwargs)
+      wait_for_image_state(encrypted_ami_id, **kwargs)
       deregister_image(unencrypted_ami_id)
   except KeyboardInterrupt:
     sys.exit("User aborted script!")

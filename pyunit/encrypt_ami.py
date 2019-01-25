@@ -91,7 +91,7 @@ class TestAwsEc2CopyImage(unittest.TestCase):
       kwargs,
     )
 
-  def test_wait_for_ami(self):
+  def test_wait_for_image_state(self):
     kwargs = {
       'description':   '',
       'source_image_id': 'ami-52293031',
@@ -100,11 +100,7 @@ class TestAwsEc2CopyImage(unittest.TestCase):
       'name':          'unencrypted-jenkins-201701011111',
       'os':            'linux',
     }
-    wait_for_ami('ami-23061e40', **kwargs)
-    self.assertTrue(os.path.exists('Encrypt_AMI_ID.txt'))
-    content = open('Encrypt_AMI_ID.txt', 'r').read().rstrip()
-    self.assertEquals(content, 'ami-23061e40')
-    os.remove('Encrypt_AMI_ID.txt')
+    wait_for_image_state('ami-23061e40', 'available', **kwargs)
 
   @mock.patch('encrypt_ami.get_ec2_instance_status')
   def test_terminate_instance(self, patched_get_ec2_instance_status):
