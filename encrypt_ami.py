@@ -158,26 +158,22 @@ def account_of(image_id):
   response = client.describe_images(DryRun=False, ImageIds=[image_id])
   return response['Images'][0]['ImageLocation'].split('/')[0]
 
-def copy_image(**kwargs):
+def copy_image(image_id, name, kms_key_id):
   client = boto3_client_ec2()
-  if os.environ.get('DATE_TIME'):
-    kwargs['name'] += "-" + os.environ['DATE_TIME']
-  if kwargs['encrypted']:
-    kwargs['name'] = "encrypted-" + kwargs['name']
 
-  print("Creating the AMI: %s" % kwargs['name'])
+  print "Creating the AMI: %s" % name
 
   response = client.copy_image(
+          Name=name,
+          SourceImageId=image_id,
           DryRun=False,
-          SourceRegion=kwargs['source_region'],
-          SourceImageId=kwargs['source_image_id'],
-          Name=kwargs['name'],
-          Description=kwargs['description'],
-          Encrypted=kwargs['encrypted'])
+          SourceRegion='ap-southeast-2',
+          Encrypted=True)
 
-  print("AMI: %s" %response['ImageId'])
+  encrypted_image_id = response['ImageId']
+  wait_for_image_state(encrypted_image_id, 'available')
 
-  return response['ImageId'], kwargs
+  return encrypted_image_id
 
 def wait_for_image_state(image_id, desired_state, **kwargs):
   client = boto3_client_ec2()
@@ -206,33 +202,46 @@ def deregister_image(ami_id):
   print("Deregistering the AMI: %s" %ami_id)
   return client.deregister_image(DryRun=False, ImageId=ami_id)
 
-def run_instance(**kwargs):
+def run_instance(image_id, iam_instance_profile, subnet_id, os_type):
   client = boto3_client_ec2()
 
-  print("Launching a source AWS instance...")
+  print "Launching a source AWS instance..."
 
-  subnet_id = random.choice(os.environ.get('AWS_BACKEND_SUBNET_IDS').split(','))
-
-  if kwargs['os'] == "windows":
+  # FIXME.
+  if os_type == "windows":
     user_data = str(user_data_script())
   else:
     user_data = ""
 
-  response = client.run_instances(DryRun=False,
-        ImageId=kwargs['source_image_id'],
+  # FIXME. Tags missing. It looks something like:
+  #
+  #   TagSpecifications=[
+  #     {
+  #       'ResourceType': 'instance'
+  #       'Tags': [
+  #         {
+  #           'Key': 'string',
+  #           'Value': 'string'
+  #         },
+  #       ]
+  #     },
+  #   ]
+  #
+
+  response = client.run_instances(ImageId=image_id,
         InstanceType='c4.2xlarge',
-        MinCount=1,
-        MaxCount=1,
+        IamInstanceProfile={'Name': iam_instance_profile},
+        UserData=user_data,
         SubnetId=subnet_id,
-        UserData=user_data)
+        MinCount=1,
+        MaxCount=1)
 
   instance_id = response['Instances'][0]['InstanceId']
-  print("Instance ID: %s" %instance_id)
-  ec2_create_tags(instance_id, **kwargs)
+  # create_tags(instance_id, **kwargs)
   get_ec2_instance_status(instance_id, 'running')
   return instance_id
 
-def ec2_create_tags(instance_id, **kwargs):
+def create_tags(instance_id, **kwargs):
   client = boto3_client_ec2()
   client.create_tags(
           DryRun=False,
@@ -240,28 +249,25 @@ def ec2_create_tags(instance_id, **kwargs):
           Tags=[{"Key": "Foo", "Value": "Bar"}])
   return
 
-def ec2_stop_instances(instance_id):
+def stop_instance(instance_id):
   client = boto3_client_ec2()
   print("Stopping the source AWS instance...")
   response = client.stop_instances(DryRun=False, InstanceIds=[instance_id])
   get_ec2_instance_status(instance_id, 'stopped')
 
-def ec2_create_image(instance_id, **kwargs):
+def create_image(instance_id, name):
   client = boto3_client_ec2()
 
-  if os.environ.get('DATE_TIME'):
-    kwargs['name'] += "-" + os.environ['DATE_TIME']
-
-  kwargs['name'] = "unencrypted-" + kwargs['name']
-
-  print("Creating the AMI: %s" % kwargs['name'])
+  print "Creating the AMI: %s" % name
 
   response = client.create_image(
-          DryRun=False,
-          InstanceId = instance_id,
-          Name=kwargs["name"])
+          InstanceId=instance_id,
+          Name=name)
 
-  return response["ImageId"], kwargs
+  unencrypted_image_id = response['ImageId']
+  wait_for_image_state(unencrypted_image_id, 'available')
+
+  return unencrypted_image_id
 
 def main():
   if os.environ.get('BOTO_RECORD'):
@@ -273,19 +279,19 @@ def main():
 
   args = get_args()
   try:
-    if this_account() == account_of(vars(args)['source_image_id']):
-      ami_id, kwargs = copy_image(**vars(args))
-      wait_for_image_state(ami_id, **kwargs)
+    if this_account() == account_of(args.source_image_id):
+      encrypted_image_id = \
+        copy_image(args.source_image_id, args.image_name, args.kms_key_id)
     else:
-      instance_id = run_instance(**vars(args))
-      ec2_stop_instances(instance_id)
-      unencrypted_ami_id, kwargs = ec2_create_image(instance_id, **vars(args))
-      wait_for_image_state(unencrypted_ami_id, **kwargs)
+      instance_id = run_instance(args.source_image_id, args.iam_instance_profile,
+        args.subnet_id, args.os_type)
+      stop_instance(instance_id)
+      unencrypted_image_id = \
+        create_image(args.instance_id, args.image_name + "-unencrypted")
       terminate_instance(instance_id)
-      vars(args)['source_image_id'] = unencrypted_ami_id 
-      encrypted_ami_id, kwargs = copy_image(**vars(args))
-      wait_for_image_state(encrypted_ami_id, **kwargs)
-      deregister_image(unencrypted_ami_id)
+      encrypted_image_id = \
+        copy_image(args.source_image_id, args.image_name, args.kms_key_id)
+      deregister_image(unencrypted_image_id)
   except KeyboardInterrupt:
     sys.exit("User aborted script!")
 

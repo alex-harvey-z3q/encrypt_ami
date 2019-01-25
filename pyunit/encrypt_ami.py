@@ -68,28 +68,17 @@ class TestAwsEc2CopyImage(unittest.TestCase):
     self.assertEquals('625972064986', acc)
 
   def test_run_instance(self):
-    instance_id = run_instance(**self.args)
+    instance_id = run_instance('ami-52293031', 'CIMSAppServerInstanceProfile', 'subnet-43920e34', 'windows')
     self.assertEquals('i-0481ed4a67454b5e7', instance_id)
 
   @mock.patch('encrypt_ami.get_ec2_instance_status')
-  def test_ec2_stop_instances(self, patched_get_ec2_instance_status):
-    ec2_stop_instances('i-0481ed4a67454b5e7')
+  def test_stop_instance(self, patched_get_ec2_instance_status):
+    stop_instance('i-0481ed4a67454b5e7')
     patched_get_ec2_instance_status.assert_called_once_with('i-0481ed4a67454b5e7', 'stopped')
 
-  def test_ec2_create_image(self):
-    unencrypted_ami_id, kwargs = ec2_create_image('i-0481ed4a67454b5e7', **self.args)
+  def test_create_image(self):
+    unencrypted_ami_id = create_image('i-0481ed4a67454b5e7', 'unencrypted-jenkins-201701011111')
     self.assertEquals('ami-23061e40', unencrypted_ami_id)
-    self.assertEquals(
-      {
-        'description':   '',
-        'source_image_id': 'ami-52293031',
-        'encrypted':     True,
-        'source_region': 'ap-southeast-2',
-        'name':          'unencrypted-jenkins-201701011111',
-        'os':            'linux',
-      },
-      kwargs,
-    )
 
   def test_wait_for_image_state(self):
     kwargs = {
@@ -108,20 +97,8 @@ class TestAwsEc2CopyImage(unittest.TestCase):
     patched_get_ec2_instance_status.assert_called_once_with('i-0481ed4a67454b5e7', 'terminated')
 
   def test_copy_image(self):
-    self.args['source_image_id'] = 'ami-23061e40'
-    encrypted_ami_id, kwargs = copy_image(**self.args)
+    encrypted_ami_id = copy_image('ami-23061e40', 'encrypted-jenkins-201701011111', 'alias/mykey')
     self.assertEquals('ami-2939214a', encrypted_ami_id)
-    self.assertEquals(
-      {
-        'description':   '',
-        'source_image_id': 'ami-23061e40',
-        'encrypted':     True,
-        'source_region': 'ap-southeast-2',
-        'name':          'encrypted-jenkins-201701011111',
-        'os':            'linux',
-      },
-      kwargs,
-    )
 
   def test_deregister_image(self):
     response = deregister_image('ami-23061e40')
