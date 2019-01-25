@@ -60,15 +60,15 @@ class TestAwsEc2CopyImage(unittest.TestCase):
   def tearDown(self):
     pass
 
-  def test_get_account_id(self):
-    self.assertEquals('123456781234', get_account_id())
+  def test_this_account(self):
+    self.assertEquals('123456781234', this_account())
 
-  def test_get_image_location(self):
-    acc = get_image_location('ami-52293031')
+  def test_account_of(self):
+    acc = account_of('ami-52293031')
     self.assertEquals('625972064986', acc)
 
-  def test_ec2_run_instances(self):
-    instance_id = ec2_run_instances(**self.args)
+  def test_run_instance(self):
+    instance_id = run_instance(**self.args)
     self.assertEquals('i-0481ed4a67454b5e7', instance_id)
 
   @mock.patch('encrypt_ami.get_ec2_instance_status')
@@ -107,13 +107,13 @@ class TestAwsEc2CopyImage(unittest.TestCase):
     os.remove('Encrypt_AMI_ID.txt')
 
   @mock.patch('encrypt_ami.get_ec2_instance_status')
-  def test_terminate_ec2_instance(self, patched_get_ec2_instance_status):
-    terminate_ec2_instance('i-0481ed4a67454b5e7')
+  def test_terminate_instance(self, patched_get_ec2_instance_status):
+    terminate_instance('i-0481ed4a67454b5e7')
     patched_get_ec2_instance_status.assert_called_once_with('i-0481ed4a67454b5e7', 'terminated')
 
-  def test_ec2_copy_image(self):
+  def test_copy_image(self):
     self.args['source_image_id'] = 'ami-23061e40'
-    encrypted_ami_id, kwargs = ec2_copy_image(**self.args)
+    encrypted_ami_id, kwargs = copy_image(**self.args)
     self.assertEquals('ami-2939214a', encrypted_ami_id)
     self.assertEquals(
       {
@@ -127,8 +127,8 @@ class TestAwsEc2CopyImage(unittest.TestCase):
       kwargs,
     )
 
-  def test_deregister_ec2_image(self):
-    response = deregister_ec2_image('ami-23061e40')
+  def test_deregister_image(self):
+    response = deregister_image('ami-23061e40')
     self.assertEquals(
       {
         u'ResponseMetadata': {

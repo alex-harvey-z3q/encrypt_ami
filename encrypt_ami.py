@@ -144,7 +144,7 @@ def get_ec2_instance_status(instance_id, status):
         pass
     return
 
-def get_account_id():
+def this_account():
   if 'AWS_SECURITY_TOKEN' in os.environ:
     return boto3.client('sts').get_caller_identity().get('Account')
   else:
@@ -153,12 +153,12 @@ def get_account_id():
     except urllib2.HTTPError:
       return False
 
-def get_image_location(image_id):
+def account_of(image_id):
   client = boto3_client_ec2()
   response = client.describe_images(DryRun=False, ImageIds=[image_id])
   return response['Images'][0]['ImageLocation'].split('/')[0]
 
-def ec2_copy_image(**kwargs):
+def copy_image(**kwargs):
   client = boto3_client_ec2()
   if os.environ.get('DATE_TIME'):
     kwargs['name'] += "-" + os.environ['DATE_TIME']
@@ -204,18 +204,18 @@ def wait_for_ami(ami_id, **kwargs):
 
     time.sleep(10)
 
-def terminate_ec2_instance(instance_id):
+def terminate_instance(instance_id):
   client = boto3_client_ec2()
   print("Terminating the source AWS instance...")
   response = client.terminate_instances(DryRun=False, InstanceIds=[instance_id])
   get_ec2_instance_status(instance_id, 'terminated')
 
-def deregister_ec2_image(ami_id):
+def deregister_image(ami_id):
   client = boto3_client_ec2()
   print("Deregistering the AMI: %s" %ami_id)
   return client.deregister_image(DryRun=False, ImageId=ami_id)
 
-def ec2_run_instances(**kwargs):
+def run_instance(**kwargs):
   client = boto3_client_ec2()
 
   print("Launching a source AWS instance...")
@@ -282,19 +282,19 @@ def main():
 
   args = get_args()
   try:
-    if get_account_id() == get_image_location(vars(args)['source_image_id']):
-      ami_id, kwargs = ec2_copy_image(**vars(args))
+    if this_account() == account_of(vars(args)['source_image_id']):
+      ami_id, kwargs = copy_image(**vars(args))
       wait_for_ami(ami_id, **kwargs)
     else:
-      instance_id = ec2_run_instances(**vars(args))
+      instance_id = run_instance(**vars(args))
       ec2_stop_instances(instance_id)
       unencrypted_ami_id, kwargs = ec2_create_image(instance_id, **vars(args))
       wait_for_ami(unencrypted_ami_id, **kwargs)
-      terminate_ec2_instance(instance_id)
+      terminate_instance(instance_id)
       vars(args)['source_image_id'] = unencrypted_ami_id 
-      encrypted_ami_id, kwargs = ec2_copy_image(**vars(args))
+      encrypted_ami_id, kwargs = copy_image(**vars(args))
       wait_for_ami(encrypted_ami_id, **kwargs)
-      deregister_ec2_image(unencrypted_ami_id)
+      deregister_image(unencrypted_ami_id)
   except KeyboardInterrupt:
     sys.exit("User aborted script!")
 
