@@ -20,10 +20,6 @@ session = boto3.DEFAULT_SESSION
 pill = placebo.attach(session, data_path='pyunit/fixtures/encrypt_ami')
 pill.playback()
 
-class FakeURL:
-  def read(foo):
-    return '{"InstanceProfileArn": "arn:aws:iam::123456781234:instance-profile/myrole"}'
-
 class TestAwsEc2CopyImage(unittest.TestCase):
 
   def setUp(self):
@@ -35,11 +31,6 @@ class TestAwsEc2CopyImage(unittest.TestCase):
     def dummy_sleep(seconds):
       pass
     time.sleep = dummy_sleep
-
-    # Stub out urllib.open.
-    def dummy_urlopen(url, none, one):
-      return FakeURL()
-    urllib2.urlopen = dummy_urlopen
 
     # Set the environment variables and command line args that the script
     # is expected to be called with.

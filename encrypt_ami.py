@@ -149,13 +149,7 @@ def get_ec2_instance_status(instance_id, status):
     return
 
 def this_account():
-  if 'AWS_SECURITY_TOKEN' in os.environ:
-    return boto3.client('sts').get_caller_identity().get('Account')
-  else:
-    try:
-      return json.loads(urllib2.urlopen('http://169.254.169.254/latest/meta-data/iam/info/', None, 1).read())['InstanceProfileArn'].split(':')[4]
-    except urllib2.HTTPError:
-      return False
+  return boto3.client('sts').get_caller_identity().get('Account')
 
 def account_of(image_id):
   client = boto3_client_ec2()
