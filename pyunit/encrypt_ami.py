@@ -52,6 +52,7 @@ class TestAwsEc2CopyImage(unittest.TestCase):
       'description':   '',
       'source_image_id': 'ami-52293031',
       'encrypted':     True,
+      'kms_key_id':    '',
       'source_region': 'ap-southeast-2',
       'name':          'jenkins',
       'os':            'linux',

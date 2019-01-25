@@ -24,6 +24,10 @@ def get_args():
         required=False, action="store_true",
         help="Specifies whether the destination snapshots of the copied image should be encrypted.")
   parser.add_argument(
+    "--kms-key-id",
+        action="store", required=False, metavar="KMS_KEY_ID", dest="kms_key_id", default="",
+        help="The full ARN of the AWS Key Management Service (AWS KMS) CMK to use when encrypting the snapshots of an image during a copy operation. This parameter is only required if you want to use a non-default CMK; if this parameter is not specified, the default CMK for EBS is used.")
+  parser.add_argument(
     "--source-image-id",
         action="store", required=True, metavar="SOURCE_AMI_ID", dest="source_image_id",
         help="The ID of the AMI to copy.")
@@ -168,7 +172,8 @@ def copy_image(image_id, name, kms_key_id):
           SourceImageId=image_id,
           DryRun=False,
           SourceRegion='ap-southeast-2',
-          Encrypted=True)
+          Encrypted=True,
+          KmsKeyId=kms_key_id)
 
   encrypted_image_id = response['ImageId']
   wait_for_image_state(encrypted_image_id, 'available')
