@@ -7,7 +7,7 @@ from mock import Mock
 
 import sys
 sys.path.insert(0, '.')
-from aws_ec2_copy_image import *
+from encrypt_ami import *
 
 import boto3
 import os
@@ -17,7 +17,7 @@ import os
 
 boto3.setup_default_session()
 session = boto3.DEFAULT_SESSION
-pill = placebo.attach(session, data_path='pyunit/fixtures/aws_ec2_copy_image')
+pill = placebo.attach(session, data_path='pyunit/fixtures/encrypt_ami')
 pill.playback()
 
 class TestAwsEc2CopyImage(unittest.TestCase):
@@ -62,7 +62,7 @@ class TestAwsEc2CopyImage(unittest.TestCase):
     instance_id = ec2_run_instances(**self.args)
     self.assertEquals('i-0481ed4a67454b5e7', instance_id)
 
-  @mock.patch('aws_ec2_copy_image.get_ec2_instance_status')
+  @mock.patch('encrypt_ami.get_ec2_instance_status')
   def test_ec2_stop_instances(self, patched_get_ec2_instance_status):
     ec2_stop_instances('i-0481ed4a67454b5e7')
     patched_get_ec2_instance_status.assert_called_once_with('i-0481ed4a67454b5e7', 'stopped')
@@ -97,7 +97,7 @@ class TestAwsEc2CopyImage(unittest.TestCase):
     self.assertEquals(content, 'ami-23061e40')
     os.remove('Encrypt_AMI_ID.txt')
 
-  @mock.patch('aws_ec2_copy_image.get_ec2_instance_status')
+  @mock.patch('encrypt_ami.get_ec2_instance_status')
   def test_terminate_ec2_instance(self, patched_get_ec2_instance_status):
     terminate_ec2_instance('i-0481ed4a67454b5e7')
     patched_get_ec2_instance_status.assert_called_once_with('i-0481ed4a67454b5e7', 'terminated')
