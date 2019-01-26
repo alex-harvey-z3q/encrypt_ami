@@ -1,3 +1,4 @@
+.PHONY: help shunit2 pyunit all docs
 .DEFAULT_GOAL := all
 
 help:  ## Display this help
@@ -11,7 +12,7 @@ shunit2:  ## Run the shunit2 tests for the Bash code
     bash $$i ; \
     done
 
-pyunit: = pyunit/encrypt_ami.py
+pyunit = pyunit/encrypt_ami.py
 pyunit:  ## Run the Python Unittest tests for the Python code
 	for i in $(pyunit) ; do \
 		printf "\n%s:\n" $$i ; \
