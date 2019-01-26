@@ -47,18 +47,16 @@ def build_user_data(os_type):
   else:
     return """
   <powershell>
-    # Check for the Version of Operating System
     $Cmd = Get-WmiObject -Class Win32_OperatingSystem | ForEach-Object -MemberName Caption
-    $Get_OS = $Cmd -match '(\d+)'
 
-    # Query and get the version number of the OS
-    if ($Get_Os) {
+    $Get_OS = $Cmd -match '(\d+)'
+    if ($Get_OS) {
       $Os_Type = $matches[1]
     }
 
+    Write-Host "The operating system is $Os_Type"
+
     if ($Os_Type -eq '2012') {
-      Write-Host "The operating system is $Os_Type"
-      # Configuring the Launch Setting for win2k12
       $EC2SettingsFile = "C:\\Program Files\\Amazon\\Ec2ConfigService\\Settings\\Config.xml"
       $xml = [xml](get-content $EC2SettingsFile)
       $xmlElement = $xml.get_DocumentElement()
@@ -82,8 +80,7 @@ def build_user_data(os_type):
       $xml.Save($EC2SettingsFile)
 
     } elseif ($Os_Type -eq '2016') {
-      Write-Host "The operating system is $Os_Type"
-      # Configuring the Launch setting to enable the initialization for windows server 2016
+
       # Changes are made to LaunchConfig.json file
       $LaunchConfigFile = "C:\\ProgramData\\Amazon\\EC2-Windows\\Launch\\Config\\LaunchConfig.json"
       $jsoncontent = Get-Content $LaunchConfigFile | ConvertFrom-Json
@@ -97,10 +94,71 @@ def build_user_data(os_type):
       C:\ProgramData\Amazon\EC2-Windows\Launch\Scripts\SysprepInstance.ps1
 
     } else {
-      echo "No Operating System Found"
+      Write-Host "Don't know what to do for OS type $Os_Type"
     }
   </powershell>
   """
+
+def this_account():
+  return boto3.client('sts').get_caller_identity().get('Account')
+
+def account_of(image_id):
+  client = boto3.client('ec2')
+  response = client.describe_images(DryRun=False, ImageIds=[image_id])
+  return response['Images'][0]['ImageLocation'].split('/')[0]
+
+def copy_image(image_id, name, kms_key_id):
+  client = boto3.client('ec2')
+
+  print "Creating the AMI: %s" % name
+
+  response = client.copy_image(
+          Name=name,
+          SourceImageId=image_id,
+          DryRun=False,
+          SourceRegion='ap-southeast-2',
+          Encrypted=True,
+          KmsKeyId=kms_key_id)
+
+  encrypted_image_id = response['ImageId']
+  wait_for_image_state(encrypted_image_id, 'available')
+
+  return encrypted_image_id
+
+def create_image(instance_id, name):
+  client = boto3.client('ec2')
+
+  print "Creating the AMI: %s" % name
+
+  response = client.create_image(
+          InstanceId=instance_id,
+          Name=name)
+
+  unencrypted_image_id = response['ImageId']
+  wait_for_image_state(unencrypted_image_id, 'available')
+
+  return unencrypted_image_id
+
+def deregister_image(image_id):
+  client = boto3.client('ec2')
+  print "Deregistering the AMI: %s" % image_id
+  return client.deregister_image(DryRun=False, ImageId=image_id)
+
+def wait_for_image_state(image_id, desired_state, **kwargs):
+  client = boto3.client('ec2')
+
+  print "Waiting for AMI to become %s..." % desired_state
+
+  while True:
+    response = client.describe_images(DryRun=False, ImageIds=[image_id])
+    state = response['Images'][0]['State']
+
+    if state == desired_state:
+      break
+    else:
+      print "state: %s" % state
+
+    time.sleep(10)
 
 def wait_for_instance_status(instance_id, desired_state, desired_status=''):
   client = boto3.client('ec2')
@@ -129,59 +187,6 @@ def wait_for_instance_status(instance_id, desired_state, desired_status=''):
     time.sleep(5)
 
   return
-
-def this_account():
-  return boto3.client('sts').get_caller_identity().get('Account')
-
-def account_of(image_id):
-  client = boto3.client('ec2')
-  response = client.describe_images(DryRun=False, ImageIds=[image_id])
-  return response['Images'][0]['ImageLocation'].split('/')[0]
-
-def copy_image(image_id, name, kms_key_id):
-  client = boto3.client('ec2')
-
-  print "Creating the AMI: %s" % name
-
-  response = client.copy_image(
-          Name=name,
-          SourceImageId=image_id,
-          DryRun=False,
-          SourceRegion='ap-southeast-2',
-          Encrypted=True,
-          KmsKeyId=kms_key_id)
-
-  encrypted_image_id = response['ImageId']
-  wait_for_image_state(encrypted_image_id, 'available')
-
-  return encrypted_image_id
-
-def wait_for_image_state(image_id, desired_state, **kwargs):
-  client = boto3.client('ec2')
-
-  print "Waiting for AMI to become %s..." % desired_state
-
-  while True:
-    response = client.describe_images(DryRun=False, ImageIds=[image_id])
-    state = response['Images'][0]['State']
-
-    if state == desired_state:
-      break
-    else:
-      print "state: %s" % state
-
-    time.sleep(10)
-
-def terminate_instance(instance_id):
-  client = boto3.client('ec2')
-  print("Terminating the source AWS instance...")
-  response = client.terminate_instances(DryRun=False, InstanceIds=[instance_id])
-  wait_for_instance_status(instance_id, 'terminated')
-
-def deregister_image(ami_id):
-  client = boto3.client('ec2')
-  print("Deregistering the AMI: %s" %ami_id)
-  return client.deregister_image(DryRun=False, ImageId=ami_id)
 
 def run_instance(image_id, iam_instance_profile, subnet_id, os_type):
   client = boto3.client('ec2')
@@ -218,13 +223,13 @@ def run_instance(image_id, iam_instance_profile, subnet_id, os_type):
   wait_for_instance_status(instance_id, 'running', 'ok')
   return instance_id
 
-def create_tags(instance_id, **kwargs):
-  client = boto3.client('ec2')
-  client.create_tags(
-          DryRun=False,
-          Resources=[instance_id],
-          Tags=[{"Key": "Foo", "Value": "Bar"}])
-  return
+# def create_tags(instance_id, **kwargs):
+#   client = boto3.client('ec2')
+#   client.create_tags(
+#           DryRun=False,
+#           Resources=[instance_id],
+#           Tags=[{"Key": "Foo", "Value": "Bar"}])
+#   return
 
 def stop_instance(instance_id):
   client = boto3.client('ec2')
@@ -232,19 +237,11 @@ def stop_instance(instance_id):
   response = client.stop_instances(DryRun=False, InstanceIds=[instance_id])
   wait_for_instance_status(instance_id, 'stopped')
 
-def create_image(instance_id, name):
+def terminate_instance(instance_id):
   client = boto3.client('ec2')
-
-  print "Creating the AMI: %s" % name
-
-  response = client.create_image(
-          InstanceId=instance_id,
-          Name=name)
-
-  unencrypted_image_id = response['ImageId']
-  wait_for_image_state(unencrypted_image_id, 'available')
-
-  return unencrypted_image_id
+  print("Terminating the source AWS instance...")
+  response = client.terminate_instances(DryRun=False, InstanceIds=[instance_id])
+  wait_for_instance_status(instance_id, 'terminated')
 
 def main():
   if os.environ.get('BOTO_RECORD'):
