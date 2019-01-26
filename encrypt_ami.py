@@ -101,14 +101,6 @@ class UserData():
 class AMIEncrypter():
 
   def __init__(self):
-
-    if os.environ.get('BOTO_RECORD'):
-      import placebo
-      boto3.setup_default_session()
-      session = boto3.DEFAULT_SESSION
-      pill = placebo.attach(session, data_path='.')
-      pill.record()
-
     self.client = boto3.client('ec2')
 
   def encrypt(self,
