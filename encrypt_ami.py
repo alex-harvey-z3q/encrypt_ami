@@ -94,9 +94,9 @@ class UserData():
 
   def select_by(self, os_type):
     if os_type == 'windows':
-      return ""
-    else:
       return self.user_data
+    else:
+      return ""
 
 class AMIEncrypter():
 
