@@ -44,8 +44,11 @@ def get_args():
 def boto3_client_ec2():
   return boto3.client('ec2')
 
-def user_data_script():
-  return """
+def build_user_data(os_type):
+  if os_type == 'windows':
+    return ""
+  else:
+    return """
   <powershell>
     # Check for the Version of Operating System
     $Cmd = Get-WmiObject -Class Win32_OperatingSystem | ForEach-Object -MemberName Caption
@@ -186,13 +189,9 @@ def deregister_image(ami_id):
 def run_instance(image_id, iam_instance_profile, subnet_id, os_type):
   client = boto3_client_ec2()
 
-  print "Launching a source AWS instance..."
+  user_data = build_user_data(os_type)
 
-  # FIXME.
-  if os_type == "windows":
-    user_data = str(user_data_script())
-  else:
-    user_data = ""
+  print "Launching a source AWS instance..."
 
   # FIXME. Tags missing. It looks something like:
   #
