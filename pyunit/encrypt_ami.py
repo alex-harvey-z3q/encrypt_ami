@@ -63,10 +63,10 @@ class TestAwsEc2CopyImage(unittest.TestCase):
     instance_id = run_instance('ami-52293031', 'CIMSAppServerInstanceProfile', 'subnet-43920e34', 'windows')
     self.assertEquals('i-0481ed4a67454b5e7', instance_id)
 
-  @mock.patch('encrypt_ami.get_ec2_instance_status')
-  def test_stop_instance(self, patched_get_ec2_instance_status):
+  @mock.patch('encrypt_ami.wait_for_instance_status')
+  def test_stop_instance(self, patched_wait_for_instance_status):
     stop_instance('i-0481ed4a67454b5e7')
-    patched_get_ec2_instance_status.assert_called_once_with('i-0481ed4a67454b5e7', 'stopped')
+    patched_wait_for_instance_status.assert_called_once_with('i-0481ed4a67454b5e7', 'stopped')
 
   def test_create_image(self):
     unencrypted_ami_id = create_image('i-0481ed4a67454b5e7', 'unencrypted-jenkins-201701011111')
@@ -83,10 +83,10 @@ class TestAwsEc2CopyImage(unittest.TestCase):
     }
     wait_for_image_state('ami-23061e40', 'available', **kwargs)
 
-  @mock.patch('encrypt_ami.get_ec2_instance_status')
-  def test_terminate_instance(self, patched_get_ec2_instance_status):
+  @mock.patch('encrypt_ami.wait_for_instance_status')
+  def test_terminate_instance(self, patched_wait_for_instance_status):
     terminate_instance('i-0481ed4a67454b5e7')
-    patched_get_ec2_instance_status.assert_called_once_with('i-0481ed4a67454b5e7', 'terminated')
+    patched_wait_for_instance_status.assert_called_once_with('i-0481ed4a67454b5e7', 'terminated')
 
   def test_copy_image(self):
     encrypted_ami_id = copy_image('ami-23061e40', 'encrypted-jenkins-201701011111', 'alias/mykey')

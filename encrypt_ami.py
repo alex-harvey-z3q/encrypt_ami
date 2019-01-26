@@ -102,51 +102,33 @@ def user_data_script():
   </powershell>
   """
 
-def get_ec2_instance_status(instance_id, status):
+def wait_for_instance_status(instance_id, desired_state, desired_status=''):
   client = boto3_client_ec2()
-  if status == 'running':
-    print("Waiting for instance (%s) to become ready..." % instance_id)
-    while True:
-      response = client.describe_instances(DryRun=False, InstanceIds=[instance_id])
-      try:
-        if response['Reservations'][0]['Instances'][0]['State']['Name'] == status:
-          break
-        time.sleep(1)
-      except:
-        pass
-    print("Waiting for instance (%s) to become healthy..." % instance_id)
-    while True:
-      response = client.describe_instance_status(DryRun=False, InstanceIds=[instance_id])
-      try:
-        if response['InstanceStatuses'][0]['SystemStatus']['Status'] == response['InstanceStatuses'][0]['InstanceStatus']['Status'] == 'ok':
-          break
-        time.sleep(1)
-      except:
-        pass
-    print("Instance up and running!!")
+
+  print "Waiting for instance (%s) to become %s..." % (instance_id, desired_state)
+
+  while True:
+    response = client.describe_instances(DryRun=False, InstanceIds=[instance_id])
+    state = response['Reservations'][0]['Instances'][0]['State']['Name']
+    if state == desired_state:
+      break
+    print "state: %s" % state
+    time.sleep(5)
+
+  if not desired_status:
     return
-  elif status == 'stopped':
-    print("Waiting for instance (%s) to stop..." % instance_id)
-    while True:
-      response = client.describe_instances(DryRun=False, InstanceIds=[instance_id])
-      try:
-        if response['Reservations'][0]['Instances'][0]['State']['Name'] == status:
-          break
-        time.sleep(1)
-      except:
-        pass
-    return
-  elif status == 'terminated':
-    print("Waiting for instance (%s) to terminate..." % instance_id)
-    while True:
-      response = client.describe_instances(DryRun=False, InstanceIds=[instance_id])
-      try:
-        if response['Reservations'][0]['Instances'][0]['State']['Name'] == status:
-          break
-        time.sleep(1)
-      except:
-        pass
-    return
+
+  print "Waiting for instance (%s) to become %s..." % (instance_id, desired_status)
+
+  while True:
+    response = client.describe_instance_status(DryRun=False, InstanceIds=[instance_id])
+    status = response['InstanceStatuses'][0]['SystemStatus']['Status']
+    if status == desired_status:
+      break
+    print "state: %s" % status
+    time.sleep(5)
+
+  return
 
 def this_account():
   return boto3.client('sts').get_caller_identity().get('Account')
@@ -194,7 +176,7 @@ def terminate_instance(instance_id):
   client = boto3_client_ec2()
   print("Terminating the source AWS instance...")
   response = client.terminate_instances(DryRun=False, InstanceIds=[instance_id])
-  get_ec2_instance_status(instance_id, 'terminated')
+  wait_for_instance_status(instance_id, 'terminated')
 
 def deregister_image(ami_id):
   client = boto3_client_ec2()
@@ -237,7 +219,7 @@ def run_instance(image_id, iam_instance_profile, subnet_id, os_type):
 
   instance_id = response['Instances'][0]['InstanceId']
   # create_tags(instance_id, **kwargs)
-  get_ec2_instance_status(instance_id, 'running')
+  wait_for_instance_status(instance_id, 'running', 'ok')
   return instance_id
 
 def create_tags(instance_id, **kwargs):
@@ -252,7 +234,7 @@ def stop_instance(instance_id):
   client = boto3_client_ec2()
   print("Stopping the source AWS instance...")
   response = client.stop_instances(DryRun=False, InstanceIds=[instance_id])
-  get_ec2_instance_status(instance_id, 'stopped')
+  wait_for_instance_status(instance_id, 'stopped')
 
 def create_image(instance_id, name):
   client = boto3_client_ec2()
