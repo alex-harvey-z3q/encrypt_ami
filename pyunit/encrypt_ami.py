@@ -34,18 +34,7 @@ class TestEncryptAMI(unittest.TestCase):
       pass
     time.sleep = dummy_sleep
 
-    # Set the environment variables and command line args that the script
-    # is expected to be called with.
-
     os.environ['AWS_DEFAULT_REGION'] = 'ap-southeast-2'
-    self.args = {
-      'source_image_id': 'ami-52293031',
-      'kms_key_id': 'alias/mykey',
-      'name': 'jenkins',
-      'iam_instance_profile': 'MyInstanceProfile',
-      'subnet_id': 'subnet-43920e34',
-      'os_type': 'linux',
-    }
 
   def tearDown(self):
     pass
