@@ -1,0 +1,36 @@
+# encrypt_ami
+
+[![Build Status](https://img.shields.io/travis/alexharv074/encrypt_ami.svg)](https://travis-ci.org/alexharv074/encrypt_ami)
+
+This repo contains scripts written in both Python and AWS CLI for encrypting an Amazon AMI using either a simple [copy-image](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2.html#EC2.Client.copy_image) call, if the source and target accounts are the same; or by booting, stopping and then copying on the stopped AMI, and encrypting, otherwise.
+
+## share_ami.sh
+
+The Share AMI script is for sharing an AMI from the source account to one or more destination accounts.
+
+```text
+<%= %x{bash share_ami.sh -h} -%>
+```
+
+## encrypt_ami.sh
+
+The Bash version is `encrypt_ami.sh`.
+
+```text
+<%= %x{bash encrypt_ami.sh -h} -%>
+```
+
+## encrypt_ami.py
+
+The Python version is `encrypt_ami.py`.
+
+```text
+<%= %x{python encrypt_ami.py -h} -%>
+```
+
+# Tests
+
+To run the tests:
+
+```text<%= %x{make help}.gsub(/\[\d+m/,"") -%>
+```
