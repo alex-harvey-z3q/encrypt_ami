@@ -3,11 +3,8 @@
 import argparse
 import boto3
 import os
-import random
 import sys
 import time
-import json
-import urllib2
 
 def get_args():
   if 'AWS_DEFAULT_REGION' not in os.environ:
@@ -132,6 +129,9 @@ class AMIEncrypter():
 
     except KeyboardInterrupt:
       sys.exit("User aborted script!")
+
+    print "Encrypted AMI ID: %s" % encrypted_image_id
+    return encrypted_image_id
 
   def this_account(self):
     return boto3.client('sts').get_caller_identity().get('Account')
@@ -262,12 +262,13 @@ class AMIEncrypter():
     response = self.client.terminate_instances(DryRun=False, InstanceIds=[instance_id])
     self.wait_for_instance_status(instance_id, 'terminated')
 
-args = get_args()
-ami_encrypter = AMIEncrypter()
-ami_encrypter.encrypt(
-  args.source_image_id,
-  args.image_name,
-  args.kms_key_id,
-  args.iam_instance_profile,
-  args.subnet_id,
-  args.os_type)
+if __name__ == "__main__":
+  args = get_args()
+  ami_encrypter = AMIEncrypter()
+  ami_encrypter.encrypt(
+    args.source_image_id,
+    args.image_name,
+    args.kms_key_id,
+    args.iam_instance_profile,
+    args.subnet_id,
+    args.os_type)
