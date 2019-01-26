@@ -40,6 +40,67 @@ def get_args():
         help="The OS of the source image")
   return parser.parse_args()
 
+class UserData():
+  user_data = """
+  <powershell>
+    $Cmd = Get-WmiObject -Class Win32_OperatingSystem | ForEach-Object -MemberName Caption
+
+    $Get_OS = $Cmd -match '(\d+)'
+    if ($Get_OS) {
+      $Os_Type = $matches[1]
+    }
+
+    Write-Host "The operating system is $Os_Type"
+
+    if ($Os_Type -eq '2012') {
+      $EC2SettingsFile = "C:\\Program Files\\Amazon\\Ec2ConfigService\\Settings\\Config.xml"
+      $xml = [xml](get-content $EC2SettingsFile)
+      $xmlElement = $xml.get_DocumentElement()
+      $xmlElementToModify = $xmlElement.Plugins
+      $enableElements = "Ec2SetPassword", `
+        "Ec2SetComputerName", `
+        "Ec2HandleUserData", `
+        "Ec2DynamicBootVolumeSize"
+      $xmlElementToModify.Plugin | Where-Object {$enableElements -contains $_.name} | Foreach-Object {$_.State="Enabled"}
+      $xml.Save($EC2SettingsFile)
+
+      # Sysprep Configuration setting for win2k12
+      $EC2SettingsFile = "C:\\Program Files\\Amazon\\Ec2ConfigService\\Settings\\BundleConfig.xml"
+      $xml = [xml](get-content $EC2SettingsFile)
+      $xmlElement = $xml.get_DocumentElement()
+      foreach ($element in $xmlElement.Property) {
+        if ($element.Name -eq "AutoSysprep") {
+          $element.Value = "Yes"
+        }
+      }
+      $xml.Save($EC2SettingsFile)
+
+    } elseif ($Os_Type -eq '2016') {
+
+      # Changes are made to LaunchConfig.json file
+      $LaunchConfigFile = "C:\\ProgramData\\Amazon\\EC2-Windows\\Launch\\Config\\LaunchConfig.json"
+      $jsoncontent = Get-Content $LaunchConfigFile | ConvertFrom-Json
+      $jsoncontent.SetComputerName = 'true'
+      $jsoncontent | ConvertTo-Json  | set-content $LaunchConfigFile
+
+      # This script schedules the instance to initialize during the next boot.
+      C:\ProgramData\Amazon\EC2-Windows\Launch\Scripts\InitializeInstance.ps1 -Schedule
+
+      # The EC2Launch service runs Sysprep, a Microsoft tool that enables creation of customized Windows AMI that can be reused
+      C:\ProgramData\Amazon\EC2-Windows\Launch\Scripts\SysprepInstance.ps1
+
+    } else {
+      Write-Host "Don't know what to do for OS type $Os_Type"
+    }
+  </powershell>
+  """
+
+  def select_by(self, os_type):
+    if os_type == 'windows':
+      return ""
+    else:
+      return self.user_data
+
 class AMIEncrypter():
 
   def __init__(self):
@@ -71,64 +132,6 @@ class AMIEncrypter():
 
     except KeyboardInterrupt:
       sys.exit("User aborted script!")
-
-  def build_user_data(self, os_type):
-    if os_type == 'windows':
-      return ""
-    else:
-      return """
-    <powershell>
-      $Cmd = Get-WmiObject -Class Win32_OperatingSystem | ForEach-Object -MemberName Caption
-
-      $Get_OS = $Cmd -match '(\d+)'
-      if ($Get_OS) {
-        $Os_Type = $matches[1]
-      }
-
-      Write-Host "The operating system is $Os_Type"
-
-      if ($Os_Type -eq '2012') {
-        $EC2SettingsFile = "C:\\Program Files\\Amazon\\Ec2ConfigService\\Settings\\Config.xml"
-        $xml = [xml](get-content $EC2SettingsFile)
-        $xmlElement = $xml.get_DocumentElement()
-        $xmlElementToModify = $xmlElement.Plugins
-        $enableElements = "Ec2SetPassword", `
-          "Ec2SetComputerName", `
-          "Ec2HandleUserData", `
-          "Ec2DynamicBootVolumeSize"
-        $xmlElementToModify.Plugin | Where-Object {$enableElements -contains $_.name} | Foreach-Object {$_.State="Enabled"}
-        $xml.Save($EC2SettingsFile)
-
-        # Sysprep Configuration setting for win2k12
-        $EC2SettingsFile = "C:\\Program Files\\Amazon\\Ec2ConfigService\\Settings\\BundleConfig.xml"
-        $xml = [xml](get-content $EC2SettingsFile)
-        $xmlElement = $xml.get_DocumentElement()
-        foreach ($element in $xmlElement.Property) {
-          if ($element.Name -eq "AutoSysprep") {
-            $element.Value = "Yes"
-          }
-        }
-        $xml.Save($EC2SettingsFile)
-
-      } elseif ($Os_Type -eq '2016') {
-
-        # Changes are made to LaunchConfig.json file
-        $LaunchConfigFile = "C:\\ProgramData\\Amazon\\EC2-Windows\\Launch\\Config\\LaunchConfig.json"
-        $jsoncontent = Get-Content $LaunchConfigFile | ConvertFrom-Json
-        $jsoncontent.SetComputerName = 'true'
-        $jsoncontent | ConvertTo-Json  | set-content $LaunchConfigFile
-
-        # This script schedules the instance to initialize during the next boot.
-        C:\ProgramData\Amazon\EC2-Windows\Launch\Scripts\InitializeInstance.ps1 -Schedule
-
-        # The EC2Launch service runs Sysprep, a Microsoft tool that enables creation of customized Windows AMI that can be reused
-        C:\ProgramData\Amazon\EC2-Windows\Launch\Scripts\SysprepInstance.ps1
-
-      } else {
-        Write-Host "Don't know what to do for OS type $Os_Type"
-      }
-    </powershell>
-    """
 
   def this_account(self):
     return boto3.client('sts').get_caller_identity().get('Account')
@@ -210,7 +213,7 @@ class AMIEncrypter():
     return
 
   def run_instance(self, image_id, iam_instance_profile, subnet_id, os_type):
-    user_data = build_user_data(os_type)
+    user_data = UserData().select_by(os_type)
 
     print "Launching a source AWS instance..."
 
