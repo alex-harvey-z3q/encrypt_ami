@@ -50,7 +50,7 @@ class TestEncryptAMI(unittest.TestCase):
   def tearDown(self):
     pass
 
-  def testEncryptAMI(self):
+  def testEncryptAMIDifferentAccount(self):
     ami_encrypter = AMIEncrypter()
     encrypted_ami = ami_encrypter.encrypt('ami-52293031', 'jenkins', 'alias/mykey', 'MyInstanceProfile', 'subnet-43920e34', 'linux')
     self.assertEquals(encrypted_ami, 'ami-2939214a')
