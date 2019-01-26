@@ -2,16 +2,14 @@
 
 import unittest
 import placebo
-import mock
-from mock import Mock
 
 import sys
 sys.path.insert(0, '.')
+
 from encrypt_ami import AMIEncrypter
 
 import boto3
 import os
-
 import time
 
 # Attach the Placebo library. Calls to Boto3 are intercepted and replaced
