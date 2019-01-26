@@ -41,9 +41,6 @@ def get_args():
         help="The OS of the source image.")
   return parser.parse_args()
 
-def boto3_client_ec2():
-  return boto3.client('ec2')
-
 def build_user_data(os_type):
   if os_type == 'windows':
     return ""
@@ -106,7 +103,7 @@ def build_user_data(os_type):
   """
 
 def wait_for_instance_status(instance_id, desired_state, desired_status=''):
-  client = boto3_client_ec2()
+  client = boto3.client('ec2')
 
   print "Waiting for instance (%s) to become %s..." % (instance_id, desired_state)
 
@@ -137,12 +134,12 @@ def this_account():
   return boto3.client('sts').get_caller_identity().get('Account')
 
 def account_of(image_id):
-  client = boto3_client_ec2()
+  client = boto3.client('ec2')
   response = client.describe_images(DryRun=False, ImageIds=[image_id])
   return response['Images'][0]['ImageLocation'].split('/')[0]
 
 def copy_image(image_id, name, kms_key_id):
-  client = boto3_client_ec2()
+  client = boto3.client('ec2')
 
   print "Creating the AMI: %s" % name
 
@@ -160,7 +157,7 @@ def copy_image(image_id, name, kms_key_id):
   return encrypted_image_id
 
 def wait_for_image_state(image_id, desired_state, **kwargs):
-  client = boto3_client_ec2()
+  client = boto3.client('ec2')
 
   print "Waiting for AMI to become %s..." % desired_state
 
@@ -176,18 +173,18 @@ def wait_for_image_state(image_id, desired_state, **kwargs):
     time.sleep(10)
 
 def terminate_instance(instance_id):
-  client = boto3_client_ec2()
+  client = boto3.client('ec2')
   print("Terminating the source AWS instance...")
   response = client.terminate_instances(DryRun=False, InstanceIds=[instance_id])
   wait_for_instance_status(instance_id, 'terminated')
 
 def deregister_image(ami_id):
-  client = boto3_client_ec2()
+  client = boto3.client('ec2')
   print("Deregistering the AMI: %s" %ami_id)
   return client.deregister_image(DryRun=False, ImageId=ami_id)
 
 def run_instance(image_id, iam_instance_profile, subnet_id, os_type):
-  client = boto3_client_ec2()
+  client = boto3.client('ec2')
 
   user_data = build_user_data(os_type)
 
@@ -222,7 +219,7 @@ def run_instance(image_id, iam_instance_profile, subnet_id, os_type):
   return instance_id
 
 def create_tags(instance_id, **kwargs):
-  client = boto3_client_ec2()
+  client = boto3.client('ec2')
   client.create_tags(
           DryRun=False,
           Resources=[instance_id],
@@ -230,13 +227,13 @@ def create_tags(instance_id, **kwargs):
   return
 
 def stop_instance(instance_id):
-  client = boto3_client_ec2()
+  client = boto3.client('ec2')
   print("Stopping the source AWS instance...")
   response = client.stop_instances(DryRun=False, InstanceIds=[instance_id])
   wait_for_instance_status(instance_id, 'stopped')
 
 def create_image(instance_id, name):
-  client = boto3_client_ec2()
+  client = boto3.client('ec2')
 
   print "Creating the AMI: %s" % name
 
