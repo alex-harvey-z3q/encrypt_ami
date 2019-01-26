@@ -172,18 +172,15 @@ class AMIEncrypter():
     print "Deregistering the AMI: %s" % image_id
     return self.client.deregister_image(DryRun=False, ImageId=image_id)
 
-  def wait_for_image_state(self, image_id, desired_state, **kwargs):
+  def wait_for_image_state(self, image_id, desired_state):
     print "Waiting for AMI to become %s..." % desired_state
 
     while True:
       response = self.client.describe_images(DryRun=False, ImageIds=[image_id])
       state = response['Images'][0]['State']
-
       if state == desired_state:
         break
-      else:
-        print "state: %s" % state
-
+      print "state: %s" % state
       time.sleep(10)
 
   def wait_for_instance_status(self, instance_id, desired_state, desired_status=''):
