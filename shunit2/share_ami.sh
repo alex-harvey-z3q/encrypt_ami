@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-script_under_test=$(basename $0)
+script_under_test=$(basename "$0")
 
 aws() {
   echo "${FUNCNAME[0]} $*" >> commands_log
@@ -29,7 +29,7 @@ testUsage() {
 }
 
 testShareAMI() {
-  . $script_under_test 'ami-0114e9d25da9ed405' '111111111111,222222222222' > /dev/null
+  . "$script_under_test" 'ami-0114e9d25da9ed405' '111111111111,222222222222'
 
   cat > expected_log <<EOF
 aws ec2 describe-images --image-ids ami-0114e9d25da9ed405 --query Images[].BlockDeviceMappings[].Ebs[].SnapshotId --output text

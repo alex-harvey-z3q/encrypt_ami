@@ -14,7 +14,7 @@ target_account_list=$2
 IFS=',' read -r -a target_accounts <<< "$target_account_list"
 
 snapshot_ids=$(aws ec2 describe-images \
-  --image-ids $source_image_id \
+  --image-ids "$source_image_id" \
   --query \
     'Images[].BlockDeviceMappings[].Ebs[].SnapshotId' \
   --output text)
@@ -25,7 +25,7 @@ for account in "${target_accounts[@]}" ; do
     $account to image $source_image_id..."
 
   aws ec2 modify-image-attribute \
-    --image-id $source_image_id \
+    --image-id "$source_image_id" \
     --launch-permission \
       "Add=[{UserId=$account}]"
 
@@ -35,9 +35,9 @@ for account in "${target_accounts[@]}" ; do
       for $account to snapshot $snapshot_id..."
 
     aws ec2 modify-snapshot-attribute \
-      --snapshot-id $snapshot_id \
+      --snapshot-id "$snapshot_id" \
       --attribute createVolumePermission \
       --operation-type add \
-      --user-ids $account
+      --user-ids "$account"
   done
 done

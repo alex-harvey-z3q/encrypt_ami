@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-script_under_test=$(basename $0)
+script_under_test=$(basename "$0")
 
 aws() {
   case "${FUNCNAME[0]} $1 $2" in
@@ -34,8 +34,6 @@ aws() {
     (( count++ ))
     echo $count > count2
     ;;
-  'aws sts get-caller-identity --query Account --output text') echo 149317072706 ;;
-  'aws ec2 describe-images --image-id ami-0114e9d25da9ed405 --query Images[].OwnerId --output text') echo 111111111111 ;;
   'aws ec2 describe-instances --instance-ids i-060e9491b4a288669 --query Reservations[].Instances[].State.Name --output text')
     count=$(<count3)
     case $count in
@@ -144,7 +142,7 @@ testEncryptSameAccount() {
     echo 1 > count$i
   done
 
-  . $script_under_test 'ami-0114e9d25da9ed405' 'encrypted-alex' 'alias/mykey' 'windows' > /dev/null 2>&1
+  . "$script_under_test" 'ami-0114e9d25da9ed405' 'encrypted-alex' 'alias/mykey' 'windows' > /dev/null 2>&1
 
   cat > expected_log <<EOF
 aws sts get-caller-identity --query Account --output text
@@ -168,7 +166,7 @@ testEncryptDifferentAccount() {
     echo 1 > count$i
   done
 
-  . $script_under_test 'ami-0114e9d25da9ed405' 'encrypted-alex' 'alias/mykey' 'windows' 'subnet-08fa0f2711688bd28' 'CIMSAppServerInstanceProfile' '[{Key=CostCentre,Value=V_CIMS}]' > /dev/null 2>&1
+  . "$script_under_test" 'ami-0114e9d25da9ed405' 'encrypted-alex' 'alias/mykey' 'windows' 'subnet-08fa0f2711688bd28' 'CIMSAppServerInstanceProfile' '[{Key=CostCentre,Value=V_CIMS}]' > /dev/null 2>&1
 
   run_instances_command_abbreviated='aws ec2 run-instances'
   cat > expected_log <<EOF

@@ -4,6 +4,16 @@
 help:  ## Display this help
 	@awk -F':.*##' 'BEGIN {bl = "\033[0m"; cy = "\033[36m"; printf "\nUsage:\n  make %s<target>%s\n\nTargets:\n", cy, bl} /^[a-zA-Z0-9_-]+:.*?##/ {printf "  %s%-10s%s %s\n", cy, $$1, bl, $$2}' $(MAKEFILE_LIST)
 
+scripts = encrypt_ami.sh \
+					share_ami.sh \
+					shunit2/encrypt_ami.sh \
+					shunit2/share_ami.sh
+
+check:  ## Run the shellcheck tests
+	for i in $(scripts) ; do \
+		shellcheck -e SC1090,SC1091 $$i ; \
+		done
+
 shunit2 = shunit2/encrypt_ami.sh \
 					shunit2/share_ami.sh
 
