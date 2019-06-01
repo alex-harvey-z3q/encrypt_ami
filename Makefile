@@ -2,10 +2,11 @@
 .DEFAULT_GOAL := all
 
 help:  ## Display this help
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n\nTargets:\n"} /^[a-zA-Z0-9_-]+:.*?##/ { printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
+	@awk -F':.*##' 'BEGIN {bl = "\033[0m"; cy = "\033[36m"; printf "\nUsage:\n  make %s<target>%s\n\nTargets:\n", cy, bl} /^[a-zA-Z0-9_-]+:.*?##/ {printf "  %s%-10s%s %s\n", cy, $$1, bl, $$2}' $(MAKEFILE_LIST)
 
 shunit2 = shunit2/encrypt_ami.sh \
 					shunit2/share_ami.sh
+
 shunit2:  ## Run the shunit2 tests for the Bash code
 	for i in $(shunit2) ; do \
     printf "\n%s:\n" $$i ; \
