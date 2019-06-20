@@ -114,9 +114,7 @@ EOF
 }
 EOF
     ;;
-  'aws ec2 copy-image --name encrypted-alex --source-image-id ami-02d59780171ffe88a --source-region ap-southeast-2 --encrypted --kms-key-id alias/mykey --query ImageId --output text')
-    echo ami-02c1d3e42b630babc
-    ;;
+  'aws ec2 copy-image --name encrypted-alex --source-image-id ami-02d59780171ffe88a --source-region ap-southeast-2 --encrypted --kms-key-id alias/mykey --query ImageId --output text') echo ami-02c1d3e42b630babc ;;
   'aws ec2 deregister-image --image-id ami-02d59780171ffe88a') true ;;
   *)
     echo "No responses for: aws $*"
@@ -142,7 +140,8 @@ testEncryptSameAccount() {
     echo 1 > count$i
   done
 
-  . "$script_under_test" 'ami-0114e9d25da9ed405' 'encrypted-alex' 'alias/mykey' 'windows' > /dev/null 2>&1
+  . "$script_under_test" 'ami-0114e9d25da9ed405' 'encrypted-alex' 'alias/mykey' 'windows'
+  main > /dev/null 2>&1
 
   cat > expected_log <<EOF
 aws sts get-caller-identity --query Account --output text
@@ -166,7 +165,8 @@ testEncryptDifferentAccount() {
     echo 1 > count$i
   done
 
-  . "$script_under_test" 'ami-0114e9d25da9ed405' 'encrypted-alex' 'alias/mykey' 'windows' 'subnet-08fa0f2711688bd28' 'CIMSAppServerInstanceProfile' '[{Key=CostCentre,Value=V_CIMS}]' > /dev/null 2>&1
+  . "$script_under_test" 'ami-0114e9d25da9ed405' 'encrypted-alex' 'alias/mykey' 'windows' 'subnet-08fa0f2711688bd28' 'CIMSAppServerInstanceProfile' '[{Key=CostCentre,Value=V_CIMS}]'
+  main > /dev/null 2>&1
 
   run_instances_command_abbreviated='aws ec2 run-instances'
   cat > expected_log <<EOF
