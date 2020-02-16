@@ -227,21 +227,21 @@ clean_up() {
 }
 
 main() {
-	if [ "$(this_account)" == "$(account_of "$source_image_id")" ] ; then
-		copy_image "$source_image_id" "$image_name" "$kms_key_id"
-	else
-		run_instance "$source_image_id" "$iam_instance_profile" "$subnet_id" "$os_type"
-		instance_id=$(<instance_id)
-		stop_instance "$instance_id"
-		create_image "$instance_id" "${image_name}-unencrypted"
-		unencrypted_image_id=$(<unencrypted_image_id)
-		terminate_instance "$instance_id"
-		copy_image "$unencrypted_image_id" "$image_name" "$kms_key_id"
-		deregister_image "$unencrypted_image_id"
-	fi
+  if [ "$(this_account)" == "$(account_of "$source_image_id")" ] ; then
+    copy_image "$source_image_id" "$image_name" "$kms_key_id"
+  else
+    run_instance "$source_image_id" "$iam_instance_profile" "$subnet_id" "$os_type"
+    instance_id=$(<instance_id)
+    stop_instance "$instance_id"
+    create_image "$instance_id" "${image_name}-unencrypted"
+    unencrypted_image_id=$(<unencrypted_image_id)
+    terminate_instance "$instance_id"
+    copy_image "$unencrypted_image_id" "$image_name" "$kms_key_id"
+    deregister_image "$unencrypted_image_id"
+  fi
 
-	echo "Encrypted AMI ID: $(<encrypted_image_id)"
-	clean_up
+  echo "Encrypted AMI ID: $(<encrypted_image_id)"
+  clean_up
 }
 
 source_image_id=$1
